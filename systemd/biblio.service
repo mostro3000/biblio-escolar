@@ -1,0 +1,24 @@
+[Unit]
+Description=Biblioteca escolar - FastAPI/Uvicorn
+After=network.target
+
+[Service]
+Type=simple
+User=biblio
+Group=biblio
+WorkingDirectory=/opt/biblio
+EnvironmentFile=-/opt/biblio/.env
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/biblio/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8091 --workers 2
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/biblio/data
+
+[Install]
+WantedBy=multi-user.target

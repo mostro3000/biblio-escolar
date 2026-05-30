@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <title>¿Hay material disponible? · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 26rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size: 1.2rem; margin: 0 0 .25rem; }
+    .sub { color: var(--muted); font-size: .82rem; margin: 0 0 1.2rem; }
+    h2 { font-size: .9rem; color: var(--link); margin: 1.4rem 0 .6rem; }
+    .tech { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+    .tcard { background: var(--bg); border: 1px solid var(--border); border-radius: .6rem; padding: .8rem; text-align: center; }
+    .tcard .n { font-size: 1.7rem; font-weight: 800; }
+    .tcard.hay .n { color: #16a34a; } .tcard.no .n { color: var(--muted); }
+    .tcard .lbl { font-size: .8rem; font-weight: 600; text-transform: capitalize; margin-top: .1rem; }
+    .tcard .de { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .searchrow { display: flex; gap: .5rem; }
+    input { flex: 1; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: 1rem; }
+    button.b { padding: .7rem 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: #fff; cursor: pointer; }
+    .libro { display: flex; justify-content: space-between; align-items: center; gap: .6rem; background: var(--bg); border-radius: .5rem; padding: .6rem .8rem; margin-bottom: .45rem; }
+    .libro .info { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+    .libro .lcov { width: 2.4rem; height: 3.4rem; object-fit: cover; border-radius: .3rem; flex: none; background: var(--surface); }
+    .libro .t { font-size: .9rem; } .libro .a { color: var(--muted); font-size: .76rem; }
+    .disp { font-size: .8rem; font-weight: 700; flex: none; }
+    .disp.hay { color: #16a34a; } .disp.no { color: var(--danger-text); }
+    .vacio { color: var(--muted); font-size: .85rem; }
+    a.volver { display: inline-block; margin-top: 1.5rem; color: var(--link); text-decoration: none; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>📦 ¿Hay material disponible?</h1>
+    <p class="sub">Mirá cuántos hay sin prestar. Si querés uno, acercate al mostrador con tu credencial.</p>
+
+    <div id="cargando" class="vacio">Cargando…</div>
+
+    <div id="cont" style="display:none">
+      <h2>🖥️ Tecnología</h2>
+      <div class="tech" id="tech"></div>
+
+      <h2>📚 Buscar un libro</h2>
+      <div class="searchrow">
+        <input type="text" id="q" placeholder="Título o autor…" autocomplete="off">
+        <button class="b" id="buscarBtn" type="button">Buscar</button>
+      </div>
+      <div id="libros" style="margin-top:.7rem"></div>
+    </div>
+
+    <a class="volver" href="/credencial.html">← Volver a mi credencial</a>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.replace('/'); else cargarTech(); });
+
+    async function cargarTech() {
+      try {
+        const r = await fetch('/api/mi/disponibilidad');
+        if (!r.ok) { location.replace('/'); return; }
+        const d = await r.json();
+        $('cargando').style.display = 'none';
+        $('cont').style.display = '';
+        $('tech').innerHTML = d.tech.length ? d.tech.map(t =>
+          `<div class="tcard ${t.disponibles > 0 ? 'hay' : 'no'}">
+             <div class="n">${t.disponibles}</div>
+             <div class="lbl">${esc(t.tipo_label)}</div>
+             <div class="de">de ${t.total} · ${t.disponibles > 0 ? 'disponible(s)' : 'sin stock'}</div>
+           </div>`).join('') : '<p class="vacio">Todavía no hay tecnología cargada.</p>';
+      } catch { $('cargando').textContent = 'Error de red. Reintentá.'; }
+    }
+
+    $('buscarBtn').addEventListener('click', buscarLibros);
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscarLibros(); });
+    async function buscarLibros() {
+      const q = $('q').value.trim();
+      if (!q) { $('libros').innerHTML = '<p class="vacio">Escribí un título o autor.</p>'; return; }
+      $('libros').innerHTML = '<p class="vacio">Buscando…</p>';
+      try {
+        const r = await fetch('/api/mi/disponibilidad?q=' + encodeURIComponent(q));
+        if (!r.ok) { location.replace('/'); return; }
+        const d = await r.json();
+        $('libros').innerHTML = d.libros.length ? d.libros.map(l =>
+          `<div class="libro">
+             <div class="info">
+               ${l.cover_url ? `<img class="lcov" src="${esc(l.cover_url)}" alt="" onerror="this.style.display='none'">` : ''}
+               <div><div class="t">${esc(l.titulo)}</div><div class="a">${esc(l.autor || '')}</div></div>
+             </div>
+             <div class="disp ${l.disponibles > 0 ? 'hay' : 'no'}">${l.disponibles > 0 ? l.disponibles + ' disp.' : 'sin stock'}</div>
+           </div>`).join('') : '<p class="vacio">No encontramos ese libro.</p>';
+      } catch { $('libros').innerHTML = '<p class="vacio">Error de red. Reintentá.</p>'; }
+    }
+  </script>
+</body>
+</html>

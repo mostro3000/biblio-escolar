@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <title>Catálogo · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 34rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    .tabs { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .8rem; }
+    .tabs button { width: 100%; padding: .6rem; font-size: .9rem; font-weight: 600; border: 1px solid var(--border); border-radius: .6rem; background: var(--bg); color: var(--muted); cursor: pointer; }
+    .tabs button.on { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .searchrow { display: flex; gap: .5rem; }
+    input[type=text], select { padding: .65rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .95rem; }
+    input[type=text] { flex: 1; } select { width: 100%; margin-top: .5rem; }
+    button.b { padding: .65rem 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: #fff; cursor: pointer; }
+    .tot { color: #64748b; font-size: .78rem; margin: .8rem 0 .4rem; }
+    .item { display: flex; align-items: center; gap: .6rem; background: var(--bg); border-radius: .6rem; padding: .65rem .8rem; margin-bottom: .45rem; }
+    .item .main { flex: 1; min-width: 0; cursor: pointer; }
+    .item .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item .cod { font-family: ui-monospace, monospace; font-weight: 700; }
+    .item .meta { color: var(--muted); font-size: .77rem; margin-top: .15rem; }
+    .badge { font-size: .68rem; font-weight: 700; padding: .12rem .5rem; border-radius: 1rem; flex: none; }
+    .b-disponible { background: rgba(34,197,94,.15); color: var(--ok-text); } .b-prestado { background: rgba(59,130,246,.15); color: var(--link); }
+    .b-en_reparacion { background: rgba(245,158,11,.15); color: var(--warn-text); } .b-baja { background: rgba(239,68,68,.15); color: var(--danger-text); }
+    .cnt { font-size: .77rem; color: var(--text2); flex: none; }
+    .qrbtn { flex: none; padding: .35rem .55rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--bg); color: var(--text); cursor: pointer; font-size: .95rem; }
+    input[type=checkbox] { width: 1.15rem; height: 1.15rem; flex: none; accent-color: #3b82f6; }
+    .reprint { margin-top: .6rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .reprint button { padding: .6rem .9rem; font-weight: 600; border: none; border-radius: .6rem; cursor: pointer; }
+    .reprint .pr { background: #16a34a; color: #fff; } .reprint .pr:disabled { opacity: .45; }
+    .reprint .sel { background: var(--border); color: var(--text); }
+    .vacio { color: #64748b; font-size: .85rem; }
+    /* etiquetas para imprimir */
+    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .7rem; margin-top: .8rem; }
+    .label { background: #fff; color: #111; border-radius: .5rem; padding: .6rem; text-align: center; }
+    .label .qr { display: flex; justify-content: center; }
+    .label .lc { font-family: ui-monospace, monospace; font-weight: 800; font-size: 1rem; margin-top: .3rem; }
+    .label .lt { font-size: .7rem; color: #444; text-transform: capitalize; }
+    .label .le { font-size: .65rem; color: #666; margin-top: .15rem; }
+    @media print {
+      body { background: #fff; padding: 0; display: block; }
+      .card { box-shadow: none; max-width: none; background: #fff; padding: 0; }
+      .top, nav, .tabs, .searchrow, #tipoSel, .tot, #lista, .reprint, h1, .printhide { display: none !important; }
+      #print { display: block !important; }
+      .labels { gap: .4cm; } .label { border: 1px dashed #999; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>📚 Catálogo</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <b style="color:var(--text)">Catálogo</b>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+
+    <div class="tabs">
+      <button id="tabLibros" class="on" type="button">📖 Libros</button>
+      <button id="tabTech" type="button">🖥️ Tecnología</button>
+    </div>
+
+    <div class="searchrow">
+      <input type="text" id="q" placeholder="Buscar…" autocomplete="off">
+      <button class="b" id="buscarBtn" type="button">Buscar</button>
+    </div>
+    <select id="tipoSel" style="display:none">
+      <option value="">Todos los tipos</option>
+      <option value="netbook">Netbooks</option>
+      <option value="raspberry">Raspberry Pi 400</option>
+      <option value="raton">Ratones</option>
+      <option value="adaptador">Adaptadores</option>
+      <option value="mapa">Mapas</option>
+      <option value="otro">Otros</option>
+    </select>
+
+    <div class="tot" id="tot"></div>
+    <div class="reprint" id="reprintBar" style="display:none">
+      <button class="sel" id="selAll" type="button">Seleccionar todo</button>
+      <button class="pr" id="reprintBtn" type="button" disabled>🖨️ Reimprimir etiquetas (0)</button>
+    </div>
+    <div id="lista"></div>
+
+    <section id="print"></section>
+  </main>
+
+  <script src="/vendor/qrcode.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+    let clase = 'libros', techCache = [];
+
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    function setTab(c) {
+      clase = c;
+      $('tabLibros').classList.toggle('on', c === 'libros');
+      $('tabTech').classList.toggle('on', c === 'tech');
+      $('tipoSel').style.display = c === 'tech' ? '' : 'none';
+      $('reprintBar').style.display = 'none';
+      $('print').innerHTML = '';
+      cargar();
+    }
+    $('tabLibros').addEventListener('click', () => setTab('libros'));
+    $('tabTech').addEventListener('click', () => setTab('tech'));
+    $('buscarBtn').addEventListener('click', cargar);
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') cargar(); });
+    $('tipoSel').addEventListener('change', cargar);
+
+    async function cargar() {
+      const q = $('q').value.trim();
+      let url = `/api/materiales/catalogo?clase=${clase}&q=${encodeURIComponent(q)}`;
+      if (clase === 'tech' && $('tipoSel').value) url += `&tipo=${$('tipoSel').value}`;
+      $('lista').innerHTML = '<p class="vacio">Cargando…</p>';
+      try {
+        const r = await fetch(url);
+        if (r.status === 401) { location.href = '/login.html'; return; }
+        const d = await r.json();
+        $('tot').textContent = `${d.total} resultado(s)`;
+        clase === 'libros' ? renderLibros(d.items) : renderTech(d.items);
+      } catch { $('lista').innerHTML = '<p class="vacio">Error de red. Reintentá.</p>'; }
+    }
+
+    function renderLibros(items) {
+      $('reprintBar').style.display = 'none';
+      if (!items.length) { $('lista').innerHTML = '<p class="vacio">No hay libros que coincidan.</p>'; return; }
+      $('lista').innerHTML = items.map(t => `
+        <div class="item">
+          <div class="main" onclick="location.href='/ficha.html?codigo=${encodeURIComponent(t.codigo || t.isbn || '')}'">
+            <div class="nm">${esc(t.titulo)}</div>
+            <div class="meta">${esc(t.autor || 'autor desconocido')}${t.isbn ? ' · ISBN ' + esc(t.isbn) : (t.codigo ? ' · ' + esc(t.codigo) : '')}</div>
+          </div>
+          <div class="cnt">${t.disponibles}/${t.total} disp.</div>
+          ${(!t.isbn && t.codigo) ? `<button class="qrbtn" type="button" title="Reimprimir etiquetas QR" onclick="window._reprintLibro(${t.titulo_id})">🖨️</button>` : ''}
+        </div>`).join('');
+    }
+
+    function renderTech(items) {
+      techCache = items;
+      $('reprintBar').style.display = items.length ? 'flex' : 'none';
+      if (!items.length) { $('lista').innerHTML = '<p class="vacio">No hay materiales que coincidan.</p>'; return; }
+      $('lista').innerHTML = items.map(m => `
+        <div class="item">
+          <input type="checkbox" class="chk" value="${m.id}" onchange="window._upd()">
+          <div class="main" onclick="location.href='/ficha.html?codigo=${encodeURIComponent(m.codigo)}'">
+            <div class="cod">${esc(m.codigo)}</div>
+            <div class="meta">${esc(m.tipo_label || m.tipo)}${m.etiqueta ? ' · ' + esc(m.etiqueta) : ''}</div>
+          </div>
+          <span class="badge b-${m.estado}">${esc(m.estado)}</span>
+        </div>`).join('');
+      window._upd();
+    }
+
+    window._upd = () => {
+      const n = document.querySelectorAll('.chk:checked').length;
+      const b = $('reprintBtn'); b.disabled = n === 0; b.textContent = `🖨️ Reimprimir etiquetas (${n})`;
+    };
+    $('selAll').addEventListener('click', () => {
+      const all = document.querySelectorAll('.chk');
+      const algunoSinMarcar = [...all].some(c => !c.checked);
+      all.forEach(c => c.checked = algunoSinMarcar);
+      window._upd();
+    });
+
+    $('reprintBtn').addEventListener('click', () => {
+      const ids = new Set([...document.querySelectorAll('.chk:checked')].map(c => +c.value));
+      const sel = techCache.filter(m => ids.has(m.id));
+      if (!sel.length) return;
+      const box = $('print');
+      box.innerHTML = '<div class="labels" id="labels"></div>';
+      const labels = $('labels');
+      sel.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'label';
+        div.innerHTML = `<div class="qr"></div>
+          <div class="lc">${esc(m.codigo)}</div>
+          <div class="lt">${esc(m.tipo_label || m.tipo)}${m.etiqueta ? ' · ' + esc(m.etiqueta) : ''}</div>
+          <div class="le">Biblioteca · @@ESCUELA@@</div>`;
+        labels.appendChild(div);
+        new QRCode(div.querySelector('.qr'), { text: m.codigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+      });
+      window.print();
+    });
+
+    // reimprimir TODAS las etiquetas QR de un libro viejo sin ISBN (trae sus copias)
+    window._reprintLibro = async (tituloId) => {
+      try {
+        const r = await fetch('/api/materiales/titulo/' + tituloId + '/copias');
+        if (r.status === 401) { location.href = '/login.html'; return; }
+        const d = await r.json();
+        const copias = (d.copias || []).filter(c => c.codigo);
+        if (!copias.length) { alert('Este libro no tiene etiquetas QR para imprimir.'); return; }
+        const box = $('print');
+        box.innerHTML = '<div class="labels" id="labels"></div>';
+        const labels = $('labels');
+        copias.forEach(c => {
+          const div = document.createElement('div');
+          div.className = 'label';
+          div.innerHTML = `<div class="qr"></div>
+            <div class="lc">${esc(c.codigo)}</div>
+            <div class="lt">${esc(d.titulo)} (copia ${c.numero_copia})</div>
+            <div class="le">Biblioteca · @@ESCUELA@@</div>`;
+          labels.appendChild(div);
+          new QRCode(div.querySelector('.qr'), { text: c.codigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+        });
+        window.print();
+      } catch { alert('Error de red. Reintentá.'); }
+    };
+
+    cargar();
+  </script>
+</body>
+</html>

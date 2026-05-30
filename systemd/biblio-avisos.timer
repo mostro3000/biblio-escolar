@@ -1,0 +1,11 @@
+[Unit]
+Description=Disparo diario de los avisos de vencimiento (08:00 hora ARG)
+
+[Timer]
+# El server está en TZ America/Argentina/Buenos_Aires, así que esto es 08:00 local.
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Cambia el nombre y/o logo de la escuela.  Uso: biblio-rebrand "Nombre" [/ruta/logo.png]
+exec /opt/biblio/scripts/rebrand.sh "$@"

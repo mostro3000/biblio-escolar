@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <title>Registrarme · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); padding: 1.5rem;
+    }
+    .card { width: 100%; max-width: 26rem; background: var(--surface); border-radius: 1rem; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+    .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    p.help { font-size: .85rem; color: var(--text2); margin: 0 0 .25rem; }
+    button {
+      width: 100%; margin-top: 1rem; padding: .8rem; font-size: 1rem; font-weight: 600;
+      border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer;
+    }
+    button:disabled { opacity: .45; cursor: default; }
+    .msg { margin-top: 1.25rem; padding: .9rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; }
+    .msg.ok  { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    .msg.no  { background: rgba(239,68,68,.12);  border: 1px solid #ef4444; }
+    .msg.info{ background: rgba(59,130,246,.12); border: 1px solid #3b82f6; }
+    video { width: 100%; border-radius: .6rem; background: #000; aspect-ratio: 3/4; object-fit: cover; display: block; }
+    #video { aspect-ratio: 4/3; margin-top: 1rem; }
+    select { width: 100%; margin-top: 1rem; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .9rem; }
+    .hidden { display: none; }
+    .foot { margin-top: 1.25rem; font-size: .72rem; color: #64748b; }
+    .camwrap { position: relative; margin-top: 1rem; }
+    .oval {
+      position: absolute; inset: 0; margin: auto; width: 60%; aspect-ratio: 3/4;
+      border: 3px dashed rgba(255,255,255,.9); border-radius: 50%;
+      box-shadow: 0 0 0 1000px rgba(0,0,0,.35); pointer-events: none;
+    }
+    /* Espejo solo en la previsualización de la selfie (la captura sigue sin espejar). */
+    #bioVid.mirror { transform: scaleX(-1); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>📚 Registrarme</h1>
+
+    <!-- PASO 1: escanear DNI (PDF417) -->
+    <section id="step1">
+      <p class="sub">Paso 1 de 2 — Escaneá tu DNI</p>
+      <p class="help">Escaneá el <b>código</b> de tu DNI: el de barras (PDF417) o el <b>QR</b>, según el modelo (puede estar en el dorso o el frente).</p>
+      <video id="video" playsinline muted class="hidden"></video>
+      <select id="camSelect" class="hidden" aria-label="Elegir cámara"></select>
+      <button id="scanBtn" type="button">Iniciar cámara</button>
+      <div id="msg1" class="msg"></div>
+    </section>
+
+    <!-- PASO 2: biometría -->
+    <section id="step2" class="hidden">
+      <p class="sub" id="step2sub">Paso 2 de 2 — Verificá que sos vos</p>
+      <div id="msgModels" class="msg show info">Cargando reconocimiento facial…</div>
+      <div id="bioStage" class="hidden">
+        <p class="help" id="bioPrompt"></p>
+        <div class="camwrap">
+          <video id="bioVid" playsinline muted></video>
+          <div class="oval"></div>
+        </div>
+        <select id="bioCamSelect" class="hidden" aria-label="Elegir cámara"></select>
+        <button id="capBtn" type="button">Capturar</button>
+      </div>
+      <div id="msg2" class="msg"></div>
+    </section>
+
+    <p class="foot">Tu DNI se valida contra el padrón. No guardamos ninguna foto, solo un código matemático de tu cara.</p>
+  </main>
+
+  <script src="/vendor/zxing-library.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let reader = null, stream = null;
+    let dniActual = null, embDni = null, embSelfie = null, modelsLoaded = false, stage = null, modoRelogin = false;
+    function show(el, kind, text) { el.textContent = text; el.className = 'msg show ' + kind; }
+
+    // ----- helpers de cámara (compartidos) -----
+    const REAR_KEY = 'biblio_cam_rear_v2', FRONT_KEY = 'biblio_cam_front_v2';
+    function saveCam(key, id) { try { localStorage.setItem(key, id); } catch {} }
+    function filterCams(vids, back) {
+      const re = back ? /back|rear|trasera|environment/i : /front|user|frontal|delantera/i;
+      const f = vids.filter((d) => re.test(d.label));
+      return f.length ? f : vids;
+    }
+    function fillSelect(sel, pool) {
+      sel.innerHTML = pool.map((d, i) => `<option value="${d.deviceId}">${d.label || ('Cámara ' + (i + 1))}</option>`).join('');
+    }
+    function defaultCam(pool, key, preferRear) {
+      if (!pool.length) return null;
+      const saved = localStorage.getItem(key);                       // recordar la última elegida
+      if (saved && pool.some((d) => d.deviceId === saved)) return saved;
+      if (preferRear) {
+        // por defecto, la principal: "camera 0, facing back"
+        const cam0 = pool.find((d) => /\b0\b/.test(d.label) && /back|trasera|rear|environment/i.test(d.label));
+        if (cam0) return cam0.deviceId;
+        // si por el nombre no la ubica, al menos evitar la ultra-wide
+        const n = pool.find((d) => !/ultra|wide|angular|gran/i.test(d.label));
+        if (n) return n.deviceId;
+      }
+      return pool[0].deviceId;
+    }
+
+    // ---------- PASO 1: PDF417 ----------
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.PDF_417, ZXing.BarcodeFormat.QR_CODE]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+    $('scanBtn').addEventListener('click', startScan);
+    $('camSelect').addEventListener('change', (e) => { saveCam(REAR_KEY, e.target.value); scanWith(e.target.value); });
+
+    async function startScan() {
+      const btn = $('scanBtn');
+      btn.disabled = true; btn.textContent = 'Abriendo cámara…';
+      show($('msg1'), 'info', 'Permití el acceso a la cámara…');
+      try {
+        reader = new ZXing.BrowserMultiFormatReader(hints);
+        const pool = filterCams((await reader.listVideoInputDevices()) || [], true);
+        if (pool.length > 1) { fillSelect($('camSelect'), pool); $('camSelect').classList.remove('hidden'); }
+        const def = defaultCam(pool, REAR_KEY, true);
+        if (def) $('camSelect').value = def;
+        await scanWith(def);
+      } catch (e) {
+        show($('msg1'), 'no', 'No se pudo abrir la cámara: ' + (e && e.message ? e.message : e));
+        btn.disabled = false; btn.textContent = 'Reintentar';
+      }
+    }
+
+    async function scanWith(deviceId) {
+      try { if (reader) reader.reset(); } catch {}
+      $('video').classList.remove('hidden');
+      $('scanBtn').textContent = 'Escaneando…';
+      show($('msg1'), 'info', 'Apuntá al código (PDF417 o QR). Si no enfoca, cambiá de cámara arriba.');
+      const video = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (deviceId) video.deviceId = { exact: deviceId }; else video.facingMode = { ideal: 'environment' };
+      try {
+        await reader.decodeFromConstraints({ video }, $('video'),
+          (result) => { if (result) { stopScan(); enviarDni(result.getText()); } });
+      } catch { show($('msg1'), 'no', 'Esa cámara no abrió, probá otra de la lista.'); }
+    }
+    function stopScan() { try { if (reader) reader.reset(); } catch {} $('video').classList.add('hidden'); }
+
+    async function enviarDni(pdf417) {
+      const msg = $('msg1'), btn = $('scanBtn');
+      show(msg, 'info', 'Leyendo tu DNI…');
+      try {
+        const r = await fetch('/api/onboarding/escanear-dni', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pdf417 }),
+        });
+        if (r.status === 422) { const d = await r.json(); return rescan(msg, btn, d.detail || 'No pudimos leer el DNI.'); }
+        const data = await r.json();
+        if (data.puede_continuar) {
+          dniActual = data.dni; modoRelogin = false;
+          $('step1').classList.add('hidden');
+          $('step2').classList.remove('hidden');
+          initBiometria();
+        } else if (data.ya_registrado && data.puede_relogin) {
+          dniActual = data.dni; modoRelogin = true;
+          $('step2sub').textContent = 'Ya estás registrado — confirmá con una selfie para entrar';
+          $('step1').classList.add('hidden');
+          $('step2').classList.remove('hidden');
+          initBiometria();
+        } else { rescan(msg, btn, data.mensaje, data.ya_registrado ? 'info' : 'no'); }
+      } catch { rescan(msg, btn, 'Error de red. Reintentá.'); }
+    }
+    function rescan(msg, btn, text, kind = 'no') { show(msg, kind, text); btn.disabled = false; btn.textContent = 'Escanear de nuevo'; }
+
+    // ---------- PASO 2: biometría con cámara en vivo + óvalo ----------
+    async function initBiometria() {
+      try {
+        if (!modelsLoaded) {
+          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+          await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+          await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+          modelsLoaded = true;
+        }
+        $('msgModels').classList.add('hidden');
+        $('bioStage').classList.remove('hidden');
+        iniciarEtapa(modoRelogin ? 'selfie' : 'dni');   // re-login: solo selfie (sin foto del DNI)
+      } catch { show($('msgModels'), 'no', 'No se pudieron cargar los modelos. Recargá la página.'); }
+    }
+
+    async function startCamera(videoConstraints) {
+      stopCamera();
+      stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+      $('bioVid').srcObject = stream;
+      await $('bioVid').play();
+    }
+    function stopCamera() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } }
+
+    $('bioCamSelect').addEventListener('change', (e) => {
+      saveCam(stage === 'dni' ? REAR_KEY : FRONT_KEY, e.target.value);
+      startCamera({ deviceId: { exact: e.target.value }, width: { ideal: 1920 }, height: { ideal: 1080 } })
+        .catch(() => show($('msg2'), 'no', 'Esa cámara no abrió, probá otra.'));
+    });
+
+    async function iniciarEtapa(cual) {
+      stage = cual;
+      const esDni = cual === 'dni';
+      $('bioPrompt').innerHTML = esDni
+        ? 'Encuadrá la <b>foto de tu DNI</b> dentro del óvalo. Si no enfoca, cambiá de cámara.'
+        : 'Poné <b>tu cara</b> dentro del óvalo.';
+      $('capBtn').textContent = esDni ? '📷 Capturar foto del DNI' : '🤳 Sacar selfie';
+      $('capBtn').disabled = false;
+      $('bioVid').classList.toggle('mirror', !esDni);   // espejo solo en la selfie (más natural)
+      try { await setupCamaras(esDni); }
+      catch (e) { show($('msg2'), 'no', 'No se pudo abrir la cámara: ' + (e && e.message ? e.message : e)); }
+    }
+
+    async function setupCamaras(back) {
+      await startCamera({ facingMode: { ideal: back ? 'environment' : 'user' } });  // permiso + stream inicial
+      const vids = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+      const pool = filterCams(vids, back);
+      if (pool.length > 1) { fillSelect($('bioCamSelect'), pool); $('bioCamSelect').classList.remove('hidden'); }
+      else $('bioCamSelect').classList.add('hidden');
+      const def = defaultCam(pool, back ? REAR_KEY : FRONT_KEY, back);   // trasera -> preferir más ángulo
+      if (def) {
+        $('bioCamSelect').value = def;
+        await startCamera({ deviceId: { exact: def }, width: { ideal: 1920 }, height: { ideal: 1080 } });
+      }
+    }
+
+    async function descriptorActual() {
+      const v = $('bioVid');
+      const canvas = document.createElement('canvas');
+      canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+      canvas.getContext('2d').drawImage(v, 0, 0);
+      const det = await faceapi
+        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416 }))
+        .withFaceLandmarks().withFaceDescriptor();
+      return det ? Array.from(det.descriptor) : null;
+    }
+
+    $('capBtn').addEventListener('click', async () => {
+      const btn = $('capBtn');
+      btn.disabled = true; btn.textContent = 'Procesando…';
+      show($('msg2'), 'info', stage === 'dni' ? 'Buscando la cara en el DNI…' : 'Procesando tu selfie…');
+      const desc = await descriptorActual();
+      if (!desc) {
+        show($('msg2'), 'no', 'No detectamos una cara clara. Centrá en el óvalo y reintentá.');
+        btn.disabled = false; btn.textContent = stage === 'dni' ? '📷 Capturar foto del DNI' : '🤳 Sacar selfie';
+        return;
+      }
+      if (stage === 'dni') {
+        embDni = desc;
+        show($('msg2'), 'ok', 'Listo el DNI. Ahora la selfie.');
+        iniciarEtapa('selfie');
+      } else {
+        embSelfie = desc;
+        stopCamera();
+        if (modoRelogin) reloginEnviar(); else verificar();
+      }
+    });
+
+    async function verificar() {
+      $('bioStage').classList.add('hidden');
+      show($('msg2'), 'info', 'Verificando tu identidad…');
+      try {
+        const r = await fetch('/api/onboarding/biometria', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dni: dniActual, embedding_dni: embDni, embedding_selfie: embSelfie }),
+        });
+        const data = await r.json();
+        if (!r.ok) { return reintentarSelfie(data.detail || 'Algo falló. Reintentá.'); }
+        if (data.resultado === 'rechazado') { return reintentarSelfie(data.mensaje); }
+        if (data.aprobado) {
+          show($('msg2'), 'ok', data.mensaje + ' Te llevamos a tu credencial…');
+          setTimeout(() => { location.href = '/credencial.html'; }, 1600);
+        } else {
+          show($('msg2'), 'info', data.mensaje);  // zona gris / revisión
+        }
+      } catch { reintentarSelfie('Error de red. Reintentá.'); }
+    }
+
+    function reintentarSelfie(texto) {
+      show($('msg2'), 'no', texto);
+      $('bioStage').classList.remove('hidden');
+      iniciarEtapa('selfie');
+    }
+
+    // re-login (alumno ya registrado): selfie contra el embedding guardado
+    async function reloginEnviar() {
+      $('bioStage').classList.add('hidden');
+      show($('msg2'), 'info', 'Confirmando que sos vos…');
+      try {
+        const r = await fetch('/api/onboarding/relogin', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dni: dniActual, embedding_selfie: embSelfie }),
+        });
+        const data = await r.json();
+        if (!r.ok) { return reintentarSelfie(data.detail || 'Algo falló. Reintentá.'); }
+        if (data.aprobado) {
+          show($('msg2'), 'ok', data.mensaje + ' Te llevamos a tu credencial…');
+          setTimeout(() => { location.href = '/credencial.html'; }, 1300);
+        } else { reintentarSelfie(data.mensaje); }
+      } catch { reintentarSelfie('Error de red. Reintentá.'); }
+    }
+  </script>
+</body>
+</html>

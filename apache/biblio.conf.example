@@ -1,0 +1,35 @@
+# Apache vhost para la biblioteca escolar.
+# El instalador copia esto a /etc/apache2/sites-available/biblio.conf reemplazando __DOMAIN__.
+# Sirve el front estático y proxea /api/ al backend FastAPI (127.0.0.1:8091).
+# Para HTTPS: instalá el certificado con  certbot --apache -d __DOMAIN__
+<VirtualHost *:80>
+    ServerName __DOMAIN__
+    DocumentRoot /var/www/html/biblio
+
+    <Directory /var/www/html/biblio>
+        Require all granted
+        AllowOverride None
+    </Directory>
+
+    # API → backend FastAPI/Uvicorn
+    ProxyPreserveHost On
+    ProxyPass /api/ http://127.0.0.1:8091/api/
+    ProxyPassReverse /api/ http://127.0.0.1:8091/api/
+
+    AddType application/manifest+json .webmanifest
+
+    # No cachear HTML, el service worker y el manifest (para que los cambios lleguen)
+    <FilesMatch "(\.html|\.webmanifest|sw\.js)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+
+    # Cabeceras de seguridad. OJO: Permissions-Policy DEBE permitir la cámara (camera=(self)),
+    # si no se rompe el escaneo de QR/códigos de barras y la biometría.
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(self)"
+
+    ErrorLog ${APACHE_LOG_DIR}/biblio_error.log
+    CustomLog ${APACHE_LOG_DIR}/biblio_access.log combined
+</VirtualHost>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <script defer src="/cover-crop.js"></script>
+  <title>Ficha de material · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 30rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    button { width: 100%; margin-top: .8rem; padding: .8rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.sec { background: var(--border); } button.chip { width: auto; margin: .3rem .3rem 0 0; padding: .5rem .8rem; background: var(--border); font-size: .85rem; }
+    button.act { width: auto; margin-top: 0; padding: .5rem .8rem; font-size: .82rem; }
+    button.act.warn { background: #b45309; } button.act.danger { background: #b91c1c; } button.act.ok { background: #16a34a; }
+    .acthint { color: #64748b; font-size: .78rem; }
+    button:disabled { opacity: .45; }
+    input[type=text] { width: 100%; margin-top: .2rem; padding: .75rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: 1rem; }
+    select { width: 100%; margin-top: .8rem; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .9rem; }
+    video { width: 100%; border-radius: .6rem; margin-top: .8rem; background: #000; aspect-ratio: 4/3; object-fit: cover; }
+    .hidden { display: none; }
+    .row { display: flex; gap: .5rem; } .row > button { margin-top: .8rem; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; } .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; } .msg.info { background: rgba(59,130,246,.12); border: 1px solid #3b82f6; }
+    .ficha { margin-top: 1.2rem; }
+    .matName { font-size: 1.25rem; font-weight: 700; }
+    .matCode { color: var(--muted); font-size: .82rem; margin-top: .15rem; font-family: ui-monospace, monospace; }
+    .badge { display: inline-block; margin-top: .5rem; padding: .25rem .7rem; border-radius: 1rem; font-size: .78rem; font-weight: 700; }
+    .b-disponible { background: rgba(34,197,94,.15); color: var(--ok-text); } .b-prestado { background: rgba(59,130,246,.15); color: var(--link); }
+    .b-en_reparacion { background: rgba(245,158,11,.15); color: var(--warn-text); } .b-baja { background: rgba(239,68,68,.15); color: var(--danger-text); }
+    h2 { font-size: .92rem; color: var(--link); margin: 1.4rem 0 .5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+    .actual { background: rgba(59,130,246,.1); border: 1px solid #3b82f6; border-radius: .6rem; padding: .9rem; margin-top: 1rem; }
+    .actual .who { font-size: 1.05rem; font-weight: 700; }
+    .actual.tarde { background: rgba(239,68,68,.1); border-color: #ef4444; }
+    .stats { color: var(--muted); font-size: .8rem; margin-top: .4rem; }
+    .ev { background: var(--bg); border-left: 3px solid var(--border); border-radius: .4rem; padding: .6rem .8rem; margin-bottom: .5rem; font-size: .88rem; }
+    .ev.open { border-left-color: #3b82f6; } .ev.late { border-left-color: #ef4444; } .ev.obs { border-left-color: #f59e0b; }
+    .ev .who { font-weight: 600; } .ev .meta { color: var(--muted); font-size: .76rem; margin-top: .2rem; }
+    .ev .tag { font-size: .72rem; font-weight: 700; }
+    .ev .notas { color: var(--text2); font-size: .8rem; margin-top: .25rem; font-style: italic; }
+    .inc { background: var(--bg); border-radius: .5rem; padding: .6rem .8rem; margin-bottom: .5rem; font-size: .88rem; }
+    .inc .sev { font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+    .sev-baja { color: var(--ok-text); } .sev-media { color: var(--warn-text); } .sev-alta { color: var(--danger-text); }
+    .inc.resuelto { opacity: .6; }
+    .vacio { color: #64748b; font-size: .85rem; }
+    /* etiqueta QR para imprimir (copia de libro sin ISBN) */
+    #fichaPrint { display: none; }
+    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .7rem; }
+    .label { background: #fff; color: #111; border-radius: .5rem; padding: .6rem; text-align: center; }
+    .label .qr { display: flex; justify-content: center; }
+    .label .lc { font-family: ui-monospace, monospace; font-weight: 800; font-size: 1rem; margin-top: .3rem; }
+    .label .lt { font-size: .7rem; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .label .le { font-size: .65rem; color: #666; margin-top: .15rem; }
+    @media print {
+      body { background: #fff; padding: 0; display: block; }
+      .card { box-shadow: none; max-width: none; background: #fff; padding: 0; }
+      .card > *:not(#fichaPrint) { display: none !important; }
+      #fichaPrint { display: block !important; }
+      .label { border: 1px dashed #999; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>🔎 Ficha de material</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <b style="color:var(--text)">Ficha</b>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+
+    <section id="buscarSec">
+      <p style="font-size:.9rem;color:var(--text2);margin:0 0 .4rem">Escaneá o tipeá el <b>código interno o ISBN</b> del ejemplar.</p>
+      <input type="text" id="codigo" placeholder="Ej. NB-005 o 9789875..." autocomplete="off" inputmode="text">
+      <div class="row">
+        <button id="buscarBtn" type="button">Buscar</button>
+        <button id="scanBtn" type="button" class="sec">📷 Escanear</button>
+      </div>
+      <select id="camSelect" class="hidden"></select>
+      <video id="video" playsinline muted class="hidden"></video>
+      <div id="copias"></div>
+    </section>
+
+    <section id="fichaSec" class="ficha hidden">
+      <div style="display:flex;gap:.9rem;align-items:flex-start">
+        <img id="matCover" alt="tapa" style="display:none;width:5.5rem;height:8rem;object-fit:cover;border-radius:.5rem;border:1px solid var(--border);flex:none;background:var(--bg)">
+        <div style="min-width:0;flex:1">
+          <div class="matName" id="matName"></div>
+          <div class="matCode" id="matCode"></div>
+          <span class="badge" id="matBadge"></span>
+        </div>
+      </div>
+      <button id="cambiarCover" type="button" class="sec" style="display:none;width:auto;margin-top:.5rem;padding:.45rem .8rem;font-size:.82rem">📷 Cambiar portada</button>
+      <button id="imprimirQr" type="button" class="sec" style="display:none;width:auto;margin-top:.5rem;margin-left:.4rem;padding:.45rem .8rem;font-size:.82rem">🖨️ Imprimir QR</button>
+      <input type="file" id="coverFile" accept="image/*" capture="environment" style="display:none">
+      <div class="stats" id="matStats"></div>
+      <div id="matAcciones" style="margin-top:.7rem;display:flex;gap:.4rem;flex-wrap:wrap"></div>
+
+      <div id="actualBox"></div>
+
+      <h2>📜 Historial de préstamos</h2>
+      <div id="historial"></div>
+
+      <h2>⚠️ Incidentes</h2>
+      <div id="incidentes"></div>
+
+      <button id="otro" type="button" class="sec">Buscar otro material</button>
+    </section>
+
+    <div id="msg" class="msg"></div>
+    <section id="fichaPrint"></section>
+  </main>
+
+  <script src="/vendor/qrcode.min.js"></script>
+  <script src="/vendor/zxing-library.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let fichaId = null, qrCodigo = null, qrTitulo = null, qrCopia = null;
+    function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
+    function hideMsg() { $('msg').className = 'msg'; }
+    function al401(r) { if (r.status === 401) { location.href = '/login.html'; return true; } return false; }
+    const fmt = (s) => s ? new Date(s).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const fmtDia = (s) => s ? new Date(s).toLocaleDateString('es-AR') : '—';
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    // ---- escáner: lector NATIVO (BarcodeDetector) con respaldo ZXing. Lee EAN-13 (ISBN)
+    //      y QR (tech). Cámara trasera recordada; baja a la cámara al abrir. ----
+    const REAR_KEY = 'biblio_cam_rear_v2';
+    const SCAN_FORMATS = [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE,
+    ].filter(f => f != null);
+    const DET_FMT = new Map([
+      [ZXing.BarcodeFormat.QR_CODE, 'qr_code'], [ZXing.BarcodeFormat.EAN_13, 'ean_13'],
+      [ZXing.BarcodeFormat.EAN_8, 'ean_8'], [ZXing.BarcodeFormat.UPC_A, 'upc_a'],
+      [ZXing.BarcodeFormat.UPC_E, 'upc_e'], [ZXing.BarcodeFormat.CODE_128, 'code_128'],
+      [ZXing.BarcodeFormat.CODE_39, 'code_39'], [ZXing.BarcodeFormat.ITF, 'itf'],
+    ]);
+    const scan = { engine: null, stream: null, raf: null, reader: null, detector: null, stopped: true };
+
+    function filterRear(v) { const f = v.filter(d => /back|rear|trasera|environment/i.test(d.label)); return f.length ? f : v; }
+    function defRear(p) { if (!p.length) return null; const s = localStorage.getItem(REAR_KEY); if (s && p.some(d => d.deviceId === s)) return s; const c0 = p.find(d => /\b0\b/.test(d.label)); return (c0 || p[0]).deviceId; }
+    async function listCams() {
+      let cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      if (cams.length && !cams[0].label) {
+        try { const t = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); t.getTracks().forEach(x => x.stop()); } catch {}
+        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      }
+      return cams;
+    }
+    $('camSelect').addEventListener('change', (e) => { localStorage.setItem(REAR_KEY, e.target.value); scanWith(e.target.value); });
+
+    $('scanBtn').addEventListener('click', startScan);
+    async function startScan() {
+      show('info', 'Apuntá al código del material…');
+      scan.stopped = false;
+      try {
+        const pool = filterRear(await listCams());
+        if (pool.length > 1) { $('camSelect').innerHTML = pool.map((d, i) => `<option value="${d.deviceId}">${d.label || ('Cámara ' + (i + 1))}</option>`).join(''); $('camSelect').classList.remove('hidden'); }
+        const def = defRear(pool); if (def) $('camSelect').value = def;
+        await scanWith(def);
+      } catch (e) { show('no', 'No se pudo abrir la cámara: ' + (e && e.message ? e.message : e)); }
+    }
+    async function scanWith(deviceId) {
+      stopStream(); scan.stopped = false;
+      $('video').classList.remove('hidden');
+      $('video').scrollIntoView({ behavior: 'smooth', block: 'center' });   // bajar a la cámara
+      const v = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (deviceId) v.deviceId = { exact: deviceId }; else v.facingMode = { ideal: 'environment' };
+
+      let detFormats = null;
+      if ('BarcodeDetector' in window) {
+        try { const sup = await window.BarcodeDetector.getSupportedFormats(); detFormats = SCAN_FORMATS.map(f => DET_FMT.get(f)).filter(Boolean).filter(s => sup.includes(s)); } catch {}
+      }
+      if (detFormats && detFormats.length) {
+        scan.engine = 'native';
+        scan.detector = new window.BarcodeDetector({ formats: detFormats });
+        try { scan.stream = await navigator.mediaDevices.getUserMedia({ video: v }); $('video').srcObject = scan.stream; await $('video').play().catch(() => {}); detectLoop(); }
+        catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      } else {
+        scan.engine = 'zxing';
+        const hints = new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, SCAN_FORMATS); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        scan.reader = new ZXing.BrowserMultiFormatReader(hints);
+        try { await scan.reader.decodeFromConstraints({ video: v }, $('video'), (res) => { if (res && !scan.stopped) { const t = res.getText(); stopScan(); $('codigo').value = t; buscar(t); } }); }
+        catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      }
+    }
+    async function detectLoop() {
+      if (scan.stopped || scan.engine !== 'native') return;
+      try { const codes = await scan.detector.detect($('video')); const val = codes && codes.length ? codes[0].rawValue : ''; if (val) { stopScan(); $('codigo').value = val; buscar(val); return; } } catch {}
+      scan.raf = requestAnimationFrame(detectLoop);
+    }
+    function stopStream() {
+      if (scan.raf) { cancelAnimationFrame(scan.raf); scan.raf = null; }
+      try { if (scan.reader) scan.reader.reset(); } catch {}
+      scan.reader = null;
+      if (scan.stream) { scan.stream.getTracks().forEach(t => t.stop()); scan.stream = null; }
+      $('video').srcObject = null;
+    }
+    function stopScan() { scan.stopped = true; stopStream(); $('video').classList.add('hidden'); $('camSelect').classList.add('hidden'); }
+
+    // ---- búsqueda ----
+    $('buscarBtn').addEventListener('click', () => buscar($('codigo').value));
+    $('codigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar($('codigo').value); });
+
+    async function buscar(codigo) {
+      codigo = (codigo || '').trim();
+      if (!codigo) { show('no', 'Ingresá o escaneá un código.'); return; }
+      $('copias').innerHTML = ''; show('info', 'Buscando…');
+      try {
+        const r = await fetch('/api/materiales/buscar?codigo=' + encodeURIComponent(codigo));
+        if (al401(r)) return;
+        const d = await r.json();
+        if (d.kind === 'material') { hideMsg(); abrirFicha(d.material_id); }
+        else if (d.kind === 'libro') {
+          if (!d.copias.length) { show('no', `«${d.titulo}»: no tiene ejemplares cargados.`); return; }
+          if (d.copias.length === 1) { hideMsg(); abrirFicha(d.copias[0].material_id); }
+          else {
+            hideMsg();
+            $('copias').innerHTML = `<p class="vacio" style="margin-top:.8rem">«${esc(d.titulo)}» — elegí el ejemplar:</p>` +
+              d.copias.map(c => `<button class="chip" onclick="window._verCopia(${c.material_id})">Copia ${c.numero_copia} · ${c.estado}</button>`).join('');
+          }
+        } else { show('no', d.mensaje || 'No se encontró el material.'); }
+      } catch { show('no', 'Error de red. Reintentá.'); }
+    }
+    window._verCopia = (id) => { $('copias').innerHTML = ''; abrirFicha(id); };
+
+    async function abrirFicha(id) {
+      show('info', 'Cargando ficha…');
+      try {
+        const r = await fetch('/api/materiales/' + id + '/ficha');
+        if (al401(r)) return;
+        if (!r.ok) { show('no', 'No se pudo cargar la ficha.'); return; }
+        render(await r.json());
+        hideMsg();
+        $('buscarSec').classList.add('hidden'); $('fichaSec').classList.remove('hidden');
+      } catch { show('no', 'Error de red. Reintentá.'); }
+    }
+
+    const ESTADO_TXT = { disponible: 'Disponible', prestado: 'Prestado', en_reparacion: 'En reparación', baja: 'De baja' };
+    const SEV_TXT = { baja: 'baja', media: 'media', alta: 'alta' };
+
+    function render(f) {
+      const m = f.material;
+      fichaId = m.id;
+      $('matName').textContent = m.descripcion;
+      const partes = [m.codigo]; if (m.autor) partes.push(m.autor); if (m.etiqueta) partes.push(m.etiqueta);
+      $('matCode').textContent = partes.filter(Boolean).join('  ·  ');
+      const mc = $('matCover');
+      if (m.cover_url) { mc.src = m.cover_url; mc.style.display = ''; mc.onerror = () => { mc.style.display = 'none'; }; }
+      else { mc.style.display = 'none'; }
+      $('cambiarCover').style.display = m.titulo ? '' : 'none';   // cambiar portada: cualquier libro (ISBN o QR propio)
+      // imprimir QR: solo copias de libros SIN ISBN (llevan código interno propio LIB-NNN)
+      const esLibroQr = !!(m.titulo && !m.isbn && m.codigo);
+      $('imprimirQr').style.display = esLibroQr ? '' : 'none';
+      qrCodigo = esLibroQr ? m.codigo : null; qrTitulo = m.titulo; qrCopia = m.numero_copia;
+      const badge = $('matBadge');
+      badge.textContent = ESTADO_TXT[m.estado] || m.estado;
+      badge.className = 'badge b-' + m.estado;
+      $('matStats').textContent = `${f.stats.total_prestamos} préstamo(s) histórico(s) · ${f.stats.incidentes_abiertos} incidente(s) sin resolver`;
+
+      // acciones de estado del ejemplar (no se puede tocar si está prestado)
+      const acc = $('matAcciones');
+      if (m.estado === 'prestado') {
+        acc.innerHTML = '<span class="acthint">Está prestado: para cambiar su estado, registrá primero la devolución.</span>';
+      } else {
+        const btns = [];
+        if (m.estado !== 'disponible') btns.push(`<button class="act ok" onclick="window._setEstado('disponible')">✓ Disponible</button>`);
+        if (m.estado !== 'en_reparacion') btns.push(`<button class="act warn" onclick="window._setEstado('en_reparacion')">🔧 En reparación</button>`);
+        if (m.estado !== 'baja') btns.push(`<button class="act danger" onclick="window._setEstado('baja')">✕ Dar de baja</button>`);
+        acc.innerHTML = btns.join('');
+      }
+
+      // préstamo actual
+      const ab = f.prestamo_actual;
+      if (ab) {
+        $('actualBox').innerHTML =
+          `<div class="actual ${ab.atrasado ? 'tarde' : ''}">
+             <div class="who">${ab.atrasado ? '⏰ ' : '📍 '}Lo tiene ahora: ${esc(ab.persona)}</div>
+             <div class="meta" style="color:var(--text2);font-size:.8rem;margin-top:.3rem">
+               ${esc(ab.rol || '')} · DNI ${esc(ab.dni || '')}<br>
+               Prestado: ${fmt(ab.prestado_at)} · Vence: ${fmtDia(ab.vence_at)} ${ab.atrasado ? '— <b style="color:var(--danger-text)">ATRASADO</b>' : ''}
+             </div>
+           </div>`;
+      } else { $('actualBox').innerHTML = ''; }
+
+      // historial
+      const h = f.historial;
+      if (!h.length) { $('historial').innerHTML = '<p class="vacio">Nunca se prestó.</p>'; }
+      else {
+        $('historial').innerHTML = h.map(p => {
+          const cls = p.abierto ? (p.atrasado ? 'late' : 'open') : (p.condicion === 'observacion' ? 'obs' : '');
+          let estado;
+          if (p.abierto) estado = p.atrasado ? '<span class="tag" style="color:var(--danger-text)">EN PRÉSTAMO · ATRASADO</span>' : '<span class="tag" style="color:var(--link)">EN PRÉSTAMO</span>';
+          else if (p.condicion === 'observacion') estado = '<span class="tag" style="color:var(--warn-text)">DEVUELTO C/OBSERVACIÓN</span>';
+          else estado = '<span class="tag" style="color:var(--ok-text)">DEVUELTO OK</span>';
+          const dev = p.abierto ? '' : ` → devuelto ${fmt(p.devuelto_at)}`;
+          const encs = [p.encargado_prestamo && ('entregó: ' + p.encargado_prestamo), p.encargado_devolucion && ('recibió: ' + p.encargado_devolucion)].filter(Boolean).join(' · ');
+          return `<div class="ev ${cls}">
+                    <div class="who">${esc(p.persona)} <span style="color:var(--muted);font-weight:400;font-size:.78rem">(${esc(p.rol || '')})</span></div>
+                    <div>${estado}</div>
+                    <div class="meta">${fmt(p.prestado_at)}${dev}${encs ? '<br>' + esc(encs) : ''}</div>
+                    ${p.notas ? `<div class="notas">“${esc(p.notas)}”</div>` : ''}
+                  </div>`;
+        }).join('');
+      }
+
+      // incidentes
+      const inc = f.incidentes;
+      if (!inc.length) { $('incidentes').innerHTML = '<p class="vacio">Sin incidentes registrados.</p>'; }
+      else {
+        $('incidentes').innerHTML = inc.map(i =>
+          `<div class="inc ${i.resuelto ? 'resuelto' : ''}">
+             <span class="sev sev-${i.severidad}">${SEV_TXT[i.severidad] || i.severidad}</span>
+             ${i.resuelto ? '<span class="tag" style="color:var(--ok-text)"> · RESUELTO</span>' : ''}
+             <div>${esc(i.descripcion)}</div>
+             <div class="meta" style="color:var(--muted);font-size:.76rem;margin-top:.2rem">${fmt(i.creado_at)}${i.creado_por ? ' · ' + esc(i.creado_por) : ''}</div>
+             ${i.resuelto ? '' : `<button class="act ok" style="margin-top:.5rem" onclick="window._resolverInc(${i.id})">Marcar resuelto</button>`}
+           </div>`
+        ).join('');
+      }
+    }
+
+    async function recargar() {
+      const r = await fetch('/api/materiales/' + fichaId + '/ficha');
+      if (al401(r)) return;
+      if (r.ok) render(await r.json());
+    }
+    window._setEstado = async (estado) => {
+      const r = await fetch(`/api/admin/material/${fichaId}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { show('no', d.detail || 'No se pudo cambiar el estado.'); return; }
+      show('info', d.mensaje); await recargar();
+    };
+    window._resolverInc = async (id) => {
+      const r = await fetch(`/api/admin/incidentes/${id}/resolver`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resuelto: true }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { show('no', d.detail || 'No se pudo resolver.'); return; }
+      show('info', d.mensaje); await recargar();
+    };
+
+    $('otro').addEventListener('click', () => {
+      $('fichaSec').classList.add('hidden'); $('buscarSec').classList.remove('hidden');
+      $('codigo').value = ''; $('copias').innerHTML = ''; $('codigo').focus();
+    });
+
+    // ---- cambiar la portada de un libro ya cargado (escáner + sin agregar copias) ----
+    $('cambiarCover').addEventListener('click', () => $('coverFile').click());
+    $('coverFile').addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      const btn = $('cambiarCover'), txt = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Abriendo el recortador…';
+      try {
+        const tapa = await escanearTapa(f);     // detecta + ajustás esquinas; null si cancela
+        if (!tapa) return;
+        show('info', 'Guardando la portada…');
+        const r = await fetch('/api/materiales/' + fichaId + '/cover', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cover_base64: tapa }),
+        });
+        if (al401(r)) return;
+        const d = await r.json();
+        if (!r.ok) { show('no', d.detail || 'No se pudo cambiar la portada.'); return; }
+        const mc = $('matCover');
+        mc.src = (d.cover_url || tapa) + '?t=' + Date.now();   // bust de caché: ver la nueva
+        mc.style.display = '';
+        show('ok', d.mensaje || 'Portada actualizada.');
+      } catch { show('no', 'Error con la imagen o la red. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = txt; }
+    });
+
+    // ---- reimprimir la etiqueta QR de esta copia (libro sin ISBN) ----
+    $('imprimirQr').addEventListener('click', () => {
+      if (!qrCodigo) return;
+      const box = $('fichaPrint');
+      box.innerHTML = '<div class="labels"><div class="label" id="_lbl"></div></div>';
+      const div = $('_lbl');
+      div.innerHTML = `<div class="qr"></div>
+        <div class="lc">${esc(qrCodigo)}</div>
+        <div class="lt">${esc(qrTitulo || '')}${qrCopia ? ' (copia ' + qrCopia + ')' : ''}</div>
+        <div class="le">Biblioteca · @@ESCUELA@@</div>`;
+      new QRCode(div.querySelector('.qr'), { text: qrCodigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+      window.print();
+    });
+
+    // deep-link: /ficha.html?codigo=NB-001 (lo usa el catálogo) → busca solo
+    const _cod = new URLSearchParams(location.search).get('codigo');
+    if (_cod) { $('codigo').value = _cod; buscar(_cod); }
+  </script>
+</body>
+</html>

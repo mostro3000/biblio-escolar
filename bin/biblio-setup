@@ -1,0 +1,3 @@
+#!/bin/sh
+# Configura/reconfigura Biblio (ejecuta el instalador). Ver: biblio-setup --help
+exec /opt/biblio/install.sh "$@"

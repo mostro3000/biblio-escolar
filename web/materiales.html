@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <script defer src="/cover-crop.js"></script>
+  <title>Catálogo · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 28rem; background: var(--surface); border-radius: 1rem; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+    .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.25rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; flex: none; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin: .7rem 0 .35rem; }
+    input { width: 100%; padding: .7rem; font-size: 1rem; border: 1px solid var(--border); border-radius: .6rem; background: var(--bg); color: var(--text); }
+    input:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+    button { width: 100%; margin-top: .8rem; padding: .8rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.sec { background: var(--border); }
+    button.ok { background: #16a34a; }
+    button:disabled { opacity: .45; }
+    select { width: 100%; margin-top: .8rem; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .9rem; }
+    video { width: 100%; border-radius: .6rem; margin-top: .8rem; background: #000; aspect-ratio: 4/3; object-fit: cover; }
+    .row { display: flex; gap: .6rem; }
+    .row > div { flex: 1; }
+    /* Buscar/Escanear: misma altura aunque "📷 Escanear" ocupe 2 líneas */
+    .searchbtns > div { display: flex; }
+    .searchbtns > div > button { flex: 1; }
+    .hidden { display: none; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; }
+    .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; }
+    .msg.info { background: rgba(59,130,246,.12); border: 1px solid #3b82f6; }
+    .msg.ok { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    #form { margin-top: 1rem; display: none; }
+    #form.show { display: block; }
+    .cover { display: flex; gap: 1rem; align-items: flex-start; }
+    .cover img { width: 80px; height: 116px; object-fit: cover; border-radius: .4rem; background: var(--bg); flex: none; }
+    .badge { font-size: .7rem; padding: .15rem .5rem; border-radius: 1rem; background: var(--bg); color: var(--muted); }
+    .sinisbn { text-align: center; margin: .6rem 0 0; }
+    .sinisbn a { color: var(--link); text-decoration: none; font-size: .85rem; }
+    /* etiquetas con QR para imprimir (libros sin ISBN) */
+    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .7rem; margin-top: .8rem; }
+    .label { background: #fff; color: #111; border-radius: .5rem; padding: .6rem; text-align: center; }
+    .label .qr { display: flex; justify-content: center; }
+    .label .lc { font-family: ui-monospace, monospace; font-weight: 800; font-size: 1rem; margin-top: .3rem; }
+    .label .lt { font-size: .7rem; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .label .le { font-size: .65rem; color: #666; margin-top: .15rem; }
+    @media print {
+      body { background: #fff; padding: 0; display: block; }
+      .card { box-shadow: none; max-width: none; background: #fff; padding: 0; }
+      .card > *:not(#print) { display: none !important; }
+      #print { display: block !important; }
+      .printhide { display: none !important; }
+      .labels { gap: .4cm; } .label { border: 1px dashed #999; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top">
+      <h1>📖 Alta de libros</h1>
+      <a href="#" id="salir" class="salir">salir</a>
+    </div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <b style="color:var(--text)">Libros</b>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+    <p class="sub">Escaneá el código de barras (ISBN) de la contratapa, o tipealo.</p>
+
+    <label for="isbn">ISBN</label>
+    <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978...">
+    <div class="row searchbtns">
+      <div><button id="buscarBtn" type="button">Buscar</button></div>
+      <div><button id="scanBtn" type="button" class="sec">📷 Escanear</button></div>
+    </div>
+    <select id="camSelect" class="hidden" aria-label="Elegir cámara"></select>
+    <video id="video" playsinline muted class="hidden"></video>
+    <p class="sinisbn"><a href="#" id="sinIsbn">📕 El libro no tiene ISBN / código de barras →</a></p>
+
+    <div id="msg" class="msg"></div>
+
+    <!-- Formulario editable (pre-llenado del lookup; sirve también para carga manual) -->
+    <form id="form">
+      <div class="cover">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.3rem;flex:none">
+          <img id="cover" alt="" style="display:none">
+          <button id="tapaBtn" type="button" class="sec" style="display:none;width:auto;margin:0;padding:.3rem .6rem;font-size:.74rem">📷 Reescanear</button>
+          <input type="file" id="tapaFile" accept="image/*" capture="environment" style="display:none">
+        </div>
+        <div style="flex:1">
+          <label for="f_titulo">Título</label>
+          <input id="f_titulo" autocomplete="off">
+        </div>
+      </div>
+      <label for="f_autor">Autor</label>
+      <input id="f_autor" autocomplete="off">
+      <div class="row">
+        <div><label for="f_editorial">Editorial</label><input id="f_editorial" autocomplete="off"></div>
+        <div><label for="f_anio">Año</label><input id="f_anio" inputmode="numeric" autocomplete="off"></div>
+      </div>
+      <label for="f_copias">Cantidad de copias a dar de alta</label>
+      <input id="f_copias" inputmode="numeric" value="1">
+      <p id="fuente" class="badge"></p>
+      <button id="guardarBtn" type="button" class="ok">Guardar al catálogo</button>
+    </form>
+
+    <section id="print"></section>
+  </main>
+
+  <script src="/vendor/qrcode.min.js"></script>
+  <script src="/vendor/zxing-library.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+    function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
+    function hideMsg() { $('msg').className = 'msg'; }
+    function al401(r) { if (r.status === 401) { location.href = '/login.html'; return true; } return false; }
+    // Tapa del libro a guardar: URL del lookup online, o foto recortada (data URL). Una pisa a la otra.
+    let coverUrlOnline = null, coverDataUrl = null;
+    // modoQr = libro viejo SIN ISBN: se le genera un QR interno propio al guardar.
+    let modoQr = false;
+
+    // ---- gate: requiere sesión ----
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    // ---- libro SIN ISBN: abrir el formulario en modo QR propio ----
+    $('sinIsbn').addEventListener('click', (e) => {
+      e.preventDefault();
+      modoQr = true;
+      $('print').innerHTML = '';
+      $('isbn').value = '';
+      $('f_titulo').value = ''; $('f_autor').value = ''; $('f_editorial').value = ''; $('f_anio').value = '';
+      $('f_copias').value = '1';
+      $('cover').style.display = 'none'; coverUrlOnline = null; coverDataUrl = null;
+      $('fuente').textContent = 'libro sin ISBN — se generará un QR propio';
+      $('tapaBtn').textContent = '📷 Escanear tapa'; $('tapaBtn').style.display = '';
+      $('guardarBtn').textContent = 'Crear y generar QR';
+      show('info', 'Libro sin ISBN: sacá una foto de la tapa (la IA lee el título) o cargá los datos a mano. Al guardar se generan etiquetas con QR para imprimir.');
+      $('form').className = 'form show';
+      $('f_titulo').focus();
+      $('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // ---- lookup ----
+    $('buscarBtn').addEventListener('click', () => buscar($('isbn').value));
+    $('isbn').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar($('isbn').value); });
+
+    async function buscar(isbnRaw) {
+      const isbn = (isbnRaw || '').replace(/[^0-9Xx]/g, '');
+      if (isbn.length < 10) { show('no', 'Ingresá un ISBN válido (10 o 13 dígitos).'); return; }
+      modoQr = false; $('print').innerHTML = ''; $('guardarBtn').textContent = 'Guardar al catálogo';
+      $('form').className = 'form'; show('info', 'Buscando…');
+      try {
+        const r = await fetch('/api/materiales/isbn/' + encodeURIComponent(isbn));
+        if (al401(r)) return;
+        const d = await r.json();
+        $('isbn').value = isbn;
+        if (d.encontrado) {
+          const local = d.fuente === 'catalogo';
+          if (local) show('info', 'Ya está en tu catálogo: revisá los datos y agregá las copias que quieras.');
+          else hideMsg();
+          $('f_titulo').value = d.titulo || '';
+          $('f_autor').value = d.autor || '';
+          $('f_editorial').value = d.editorial || '';
+          $('f_anio').value = d.anio || '';
+          const cover = $('cover');
+          if (d.cover_url) { cover.src = d.cover_url; cover.style.display = ''; } else { cover.style.display = 'none'; }
+          coverUrlOnline = d.cover_url || null; coverDataUrl = null;
+          $('fuente').textContent = local ? 'ya en tu catálogo' : 'fuente: ' + d.fuente;
+          // Dejar disponible reescanear la portada (p.ej. si quedó mal recortada).
+          $('tapaBtn').textContent = '📷 Reescanear';
+          $('tapaBtn').style.display = '';
+        } else {
+          show(d.fuente === 'error' ? 'no' : 'info', d.fuente === 'error'
+            ? 'No pudimos consultar el catálogo online. Sacá una foto de la portada o cargalo a mano.'
+            : 'No se encontró online. Sacá una foto de la portada o completá a mano.');
+          $('f_titulo').value = ''; $('f_autor').value = ''; $('f_editorial').value = ''; $('f_anio').value = '';
+          $('cover').style.display = 'none'; $('fuente').textContent = 'carga manual';
+          coverUrlOnline = null; coverDataUrl = null;   // sin tapa todavía (hasta escanear la portada)
+          $('tapaBtn').textContent = '📷 Escanear tapa';
+          $('tapaBtn').style.display = '';              // no se encontró → ofrecer escanear la portada
+        }
+        $('f_copias').value = '1';
+        $('form').className = 'form show';
+        $('f_titulo').focus();
+      } catch { show('no', 'Error de red. Reintentá.'); }
+    }
+
+    // ---- escanear/reemplazar la portada (escáner de documentos: detecta y endereza la tapa) ----
+    $('tapaBtn').addEventListener('click', () => $('tapaFile').click());
+    $('tapaFile').addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';                       // permitir re-elegir la misma foto
+      if (!f) return;
+      const btn = $('tapaBtn'), txt = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Abriendo el recortador…';
+      try {
+        const tapa = await escanearTapa(f);      // abre el escáner (detecta + ajustás esquinas); null si cancela
+        if (!tapa) return;
+        coverDataUrl = tapa; coverUrlOnline = null;
+        const cov = $('cover'); cov.src = tapa; cov.style.display = '';
+        $('form').className = 'form show';
+        if ($('f_titulo').value.trim()) {        // ya hay título (reemplazo) → NO gastar IA
+          $('fuente').textContent = 'portada nueva (escáner) — guardá para aplicar';
+          show('ok', 'Portada lista. Revisá y guardá.');
+        } else {                                  // libro nuevo → leer título/autor de la tapa con IA
+          btn.textContent = 'Leyendo el título con IA…';
+          show('info', 'Leyendo el título con IA…');
+          const r = await fetch('/api/materiales/tapa', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imagen_base64: tapa, media_type: 'image/jpeg' }),
+          });
+          if (al401(r)) return;
+          const d = await r.json();
+          if (!r.ok) { show('no', 'Tapa lista. No se pudo leer el título; completalo a mano.'); }
+          else {
+            $('f_titulo').value = d.titulo || ''; $('f_autor').value = d.autor || '';
+            $('f_editorial').value = d.editorial || ''; $('f_anio').value = d.anio || '';
+            if (d.titulo) hideMsg(); else show('no', 'La IA no pudo leer el título; completalo a mano.');
+          }
+          if (!$('f_copias').value) $('f_copias').value = '1';
+          $('fuente').textContent = 'portada recortada (escáner) — revisá los datos';
+          if (!$('f_titulo').value) $('f_titulo').focus();
+        }
+      } catch { show('no', 'Error con la imagen. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = txt; }
+    });
+
+    // ---- guardar ----
+    $('guardarBtn').addEventListener('click', guardar);
+    async function guardar() {
+      if (modoQr) return guardarQr();
+      const btn = $('guardarBtn'); btn.disabled = true; btn.textContent = 'Guardando…';
+      const body = {
+        isbn: $('isbn').value,
+        titulo: $('f_titulo').value,
+        autor: $('f_autor').value || null,
+        editorial: $('f_editorial').value || null,
+        anio: parseInt($('f_anio').value) || null,
+        copias: parseInt($('f_copias').value) || 1,
+        cover_url: coverUrlOnline,      // tapa del lookup online (si la hubo)
+        cover_base64: coverDataUrl,     // o la foto recortada de la portada
+      };
+      try {
+        const r = await fetch('/api/materiales/libros', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (al401(r)) return;
+        const d = await r.json();
+        if (!r.ok) { show('no', (d.detail && (d.detail[0]?.msg || d.detail)) || 'No se pudo guardar.'); return; }
+        show('ok', d.mensaje + ' (copias N° ' + d.numeros_copia.join(', ') + ')');
+        $('form').className = 'form';            // listo para el próximo
+        coverUrlOnline = null; coverDataUrl = null;
+        $('isbn').value = ''; $('isbn').focus();
+      } catch { show('no', 'Error de red. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = 'Guardar al catálogo'; }
+    }
+
+    // ---- guardar un libro SIN ISBN → genera QR propio (LIB-NNN) e imprime etiquetas ----
+    async function guardarQr() {
+      if (!$('f_titulo').value.trim()) { show('no', 'Poné el título (o sacá la foto de la tapa para que la IA lo lea).'); $('f_titulo').focus(); return; }
+      const btn = $('guardarBtn'); btn.disabled = true; btn.textContent = 'Creando…';
+      const body = {
+        titulo: $('f_titulo').value,
+        autor: $('f_autor').value || null,
+        editorial: $('f_editorial').value || null,
+        anio: parseInt($('f_anio').value) || null,
+        copias: parseInt($('f_copias').value) || 1,
+        cover_base64: coverDataUrl,     // foto recortada de la portada (si la hubo)
+      };
+      try {
+        const r = await fetch('/api/materiales/libros-qr', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (al401(r)) return;
+        const d = await r.json();
+        if (!r.ok) { show('no', (d.detail && (d.detail[0]?.msg || d.detail)) || 'No se pudo crear.'); return; }
+        show('ok', d.mensaje + ' Imprimí las etiquetas y pegá un QR en cada copia.');
+        renderQrLabels(d.codigos || [], d.titulo);
+        $('form').className = 'form'; modoQr = false;
+        coverUrlOnline = null; coverDataUrl = null;
+        $('guardarBtn').textContent = 'Guardar al catálogo';
+        $('isbn').value = '';
+      } catch { show('no', 'Error de red. Reintentá.'); }
+      finally { btn.disabled = false; if (modoQr) btn.textContent = 'Crear y generar QR'; }
+    }
+
+    function renderQrLabels(codigos, titulo) {
+      const box = $('print');
+      box.innerHTML = '<button id="imprimir" type="button" class="printhide" style="background:#16a34a">🖨️ Imprimir etiquetas</button><div class="labels" id="labels"></div>';
+      const labels = $('labels');
+      codigos.forEach(c => {
+        const div = document.createElement('div'); div.className = 'label';
+        div.innerHTML = `<div class="qr"></div>
+          <div class="lc">${esc(c)}</div>
+          <div class="lt">${esc(titulo)}</div>
+          <div class="le">Biblioteca · @@ESCUELA@@</div>`;
+        labels.appendChild(div);
+        // el QR codifica EXACTAMENTE el código interno (el escaneo en mostrador/ficha resuelve)
+        new QRCode(div.querySelector('.qr'), { text: c, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+      });
+      $('imprimir').addEventListener('click', () => window.print());
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ---- escaneo de ISBN: lector NATIVO (BarcodeDetector, lee EAN-13 al instante en
+    //      Android/Chrome) con respaldo a ZXing. Cámara trasera "camera 0" recordada. ----
+    const REAR_KEY = 'biblio_cam_rear_v2';
+    // formatos a leer (ISBN = EAN-13; el resto por si alguna etiqueta usa otro símbolo)
+    const SCAN_FORMATS = [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+    ].filter(f => f != null);
+    const DET_FMT = new Map([
+      [ZXing.BarcodeFormat.EAN_13, 'ean_13'], [ZXing.BarcodeFormat.EAN_8, 'ean_8'],
+      [ZXing.BarcodeFormat.UPC_A, 'upc_a'], [ZXing.BarcodeFormat.UPC_E, 'upc_e'],
+    ]);
+    const scan = { engine: null, stream: null, raf: null, reader: null, detector: null, stopped: true };
+
+    function filterRear(vids) { const f = vids.filter(d => /back|rear|trasera|environment/i.test(d.label)); return f.length ? f : vids; }
+    function defaultRear(pool) {
+      if (!pool.length) return null;
+      const saved = localStorage.getItem(REAR_KEY);
+      if (saved && pool.some(d => d.deviceId === saved)) return saved;
+      const cam0 = pool.find(d => /\b0\b/.test(d.label));
+      return (cam0 || pool[0]).deviceId;
+    }
+    async function listCams() {
+      let cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      if (cams.length && !cams[0].label) {   // sin permiso aún → sin labels; pedimos y reenumeramos
+        try { const t = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); t.getTracks().forEach(x => x.stop()); } catch {}
+        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      }
+      return cams;
+    }
+    $('scanBtn').addEventListener('click', startScan);
+    $('camSelect').addEventListener('change', (e) => { localStorage.setItem(REAR_KEY, e.target.value); scanWith(e.target.value); });
+
+    async function startScan() {
+      $('scanBtn').disabled = true; $('scanBtn').textContent = 'Abriendo…';
+      show('info', 'Apuntá al código de barras de la contratapa.');
+      scan.stopped = false;
+      try {
+        const pool = filterRear(await listCams());
+        if (pool.length > 1) { $('camSelect').innerHTML = pool.map((d, i) => `<option value="${d.deviceId}">${d.label || ('Cámara ' + (i + 1))}</option>`).join(''); $('camSelect').classList.remove('hidden'); }
+        const def = defaultRear(pool);
+        if (def) $('camSelect').value = def;
+        await scanWith(def);
+      } catch (e) { show('no', 'No se pudo abrir la cámara: ' + (e && e.message ? e.message : e)); resetBtn(); }
+    }
+
+    async function scanWith(deviceId) {
+      stopStream(); scan.stopped = false;
+      $('video').classList.remove('hidden');
+      $('video').scrollIntoView({ behavior: 'smooth', block: 'center' });   // bajar a la cámara
+      const video = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (deviceId) video.deviceId = { exact: deviceId }; else video.facingMode = { ideal: 'environment' };
+
+      // ¿lector nativo disponible y soporta los formatos?
+      let detFormats = null;
+      if ('BarcodeDetector' in window) {
+        try {
+          const sup = await window.BarcodeDetector.getSupportedFormats();
+          detFormats = SCAN_FORMATS.map(f => DET_FMT.get(f)).filter(Boolean).filter(s => sup.includes(s));
+        } catch {}
+      }
+
+      if (detFormats && detFormats.length) {
+        scan.engine = 'native';
+        scan.detector = new window.BarcodeDetector({ formats: detFormats });
+        try {
+          scan.stream = await navigator.mediaDevices.getUserMedia({ video });
+          $('video').srcObject = scan.stream;
+          await $('video').play().catch(() => {});
+          detectLoop();
+        } catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      } else {
+        scan.engine = 'zxing';
+        const hints = new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, SCAN_FORMATS); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        scan.reader = new ZXing.BrowserMultiFormatReader(hints);
+        try { await scan.reader.decodeFromConstraints({ video }, $('video'), (result) => { if (result && !scan.stopped) { const t = result.getText(); stopScan(); buscar(t); } }); }
+        catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      }
+    }
+
+    async function detectLoop() {
+      if (scan.stopped || scan.engine !== 'native') return;
+      try {
+        const codes = await scan.detector.detect($('video'));
+        const val = codes && codes.length ? codes[0].rawValue : '';
+        if (val) { stopScan(); buscar(val); return; }
+      } catch {}
+      scan.raf = requestAnimationFrame(detectLoop);
+    }
+
+    function stopStream() {
+      if (scan.raf) { cancelAnimationFrame(scan.raf); scan.raf = null; }
+      try { if (scan.reader) scan.reader.reset(); } catch {}
+      scan.reader = null;
+      if (scan.stream) { scan.stream.getTracks().forEach(t => t.stop()); scan.stream = null; }
+      $('video').srcObject = null;
+    }
+    function resetBtn() { $('scanBtn').disabled = false; $('scanBtn').textContent = '📷 Escanear'; }
+    function stopScan() { scan.stopped = true; stopStream(); $('video').classList.add('hidden'); resetBtn(); }
+  </script>
+</body>
+</html>

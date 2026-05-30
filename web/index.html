@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <title>Biblioteca · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.25rem; }
+    body { visibility: hidden; } body.ready { visibility: visible; }   /* se revela tras el chequeo de sesión */
+    .card { width: 100%; max-width: 23rem; background: var(--surface); border-radius: 1rem; padding: 2rem 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); text-align: center; }
+    .logo { width: 152px; height: 152px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; margin: 0 auto 1.1rem; box-shadow: 0 4px 16px rgba(0,0,0,.4); background: #fff; cursor: pointer; }
+    .ver { display: none; font-size: .72rem; color: #64748b; margin: 1rem 0 0; }
+    .logo img { width: 100%; height: 100%; object-fit: cover; }   /* el archivo ya viene recortado al aro azul */
+    h1 { font-size: 1.2rem; margin: 0 0 .2rem; }
+    .sub { color: var(--muted); font-size: .82rem; margin: 0 0 1.6rem; line-height: 1.4; }
+    a.btn { display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: .7rem; padding: .9rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .7rem; text-decoration: none; cursor: pointer; }
+    a.primary { background: #3b82f6; color: #fff; }
+    a.sec { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    a.sec:hover { background: var(--hover); }
+    .foot { margin-top: 1.5rem; font-size: .75rem; color: #64748b; }
+    .foot a { color: #64748b; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="logo" id="logo" title="Biblio v@@VERSION@@ — creado por mt"><img src="/logo.jpg" alt="@@ESCUELA@@"></div>
+    <h1>📚 Biblioteca</h1>
+    <p class="sub">@@ESCUELA@@<br>Sistema de préstamos de la biblioteca</p>
+
+    <a class="btn primary" href="/credencial.html">🪪 Mi credencial</a>
+    <a class="btn sec" href="/onboarding.html">📷 Registrarme</a>
+    <a class="btn sec" href="/login.html">👤 Ingresar (personal)</a>
+
+    <p class="ver" id="ver">Biblio v@@VERSION@@ — creado por mt</p>
+    <p class="foot"><a href="/status.html">estado del sistema</a></p>
+  </main>
+
+  <script>
+    // Si ya hay sesión VIGENTE de alumno/docente, ir directo a la credencial.
+    // (/api/auth/me da 200 solo si la sesión no venció ni fue revocada.)
+    (function () {
+      var reveal = function () { document.body.classList.add('ready'); };
+      var t = setTimeout(reveal, 1200);   // fallback: mostrar la portada si el chequeo tarda o falla
+      fetch('/api/auth/me')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (me) {
+          clearTimeout(t);
+          if (!me) { reveal(); return; }                                  // sin sesión → portada
+          if (me.rol === 'alumno' || me.rol === 'docente') location.replace('/credencial.html');
+          else if (me.rol === 'encargado' || me.rol === 'admin') location.replace('/mostrador.html');
+          else reveal();
+        })
+        .catch(function () { clearTimeout(t); reveal(); });
+    })();
+
+    // Tocar (o apuntar) el logo muestra la versión y el crédito.
+    (function () {
+      var lo = document.getElementById('logo'), v = document.getElementById('ver');
+      if (lo && v) lo.addEventListener('click', function () {
+        v.style.display = (v.style.display === 'block') ? 'none' : 'block';
+      });
+    })();
+  </script>
+</body>
+</html>

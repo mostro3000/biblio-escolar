@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <title>Devolución · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 28rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    button { width: 100%; margin-top: .8rem; padding: .8rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.sec { background: var(--border); } button.ok { background: #16a34a; } button.warn { background: #b45309; }
+    button.chip { width: auto; margin: .3rem .3rem 0 0; padding: .5rem .8rem; background: var(--border); font-size: .85rem; }
+    button:disabled { opacity: .45; }
+    select { width: 100%; margin-top: .8rem; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .9rem; }
+    textarea { width: 100%; margin-top: .6rem; padding: .7rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .95rem; min-height: 3.5rem; }
+    video { width: 100%; border-radius: .6rem; margin-top: .8rem; background: #000; aspect-ratio: 4/3; object-fit: cover; }
+    .hidden { display: none; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; } .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; } .msg.info { background: rgba(59,130,246,.12); border: 1px solid #3b82f6; } .msg.ok { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    .mat { background: var(--bg); border-radius: .6rem; padding: .9rem; margin-top: 1rem; font-size: 1rem; font-weight: 600; }
+    .vacio { color: #64748b; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>↩️ Mostrador — Devolución</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <b style="color:var(--text)">Devolución</b>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+
+    <section id="scanSec">
+      <p style="font-size:.9rem;color:var(--text2);margin:0">Escaneá el <b>material</b> que se devuelve (código de barras o QR).</p>
+      <select id="camSelect" class="hidden"></select>
+      <video id="video" playsinline muted class="hidden"></video>
+      <button id="scanBtn" type="button">📷 Escanear material</button>
+      <div id="copias"></div>
+    </section>
+
+    <section id="confirmSec" class="hidden">
+      <div class="mat" id="matDesc"></div>
+      <button id="okBtn" type="button" class="ok">✓ Devolver OK</button>
+      <button id="obsBtn" type="button" class="warn">⚠ Con observación</button>
+      <div id="obsBox" class="hidden">
+        <textarea id="notas" placeholder="Qué observaste (ej. tapa rota, faltan páginas, cargador no incluido)…"></textarea>
+        <button id="obsConfirm" type="button" class="warn">Registrar devolución con observación</button>
+      </div>
+      <button id="cancelar" type="button" class="sec">Cancelar</button>
+    </section>
+
+    <div id="msg" class="msg"></div>
+  </main>
+
+  <script src="/vendor/zxing-library.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let sel = null;
+    function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
+    function hideMsg() { $('msg').className = 'msg'; }
+    function al401(r) { if (r.status === 401) { location.href = '/login.html'; return true; } return false; }
+
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    // ---- escáner: lector NATIVO (BarcodeDetector) con respaldo ZXing. Lee EAN-13 (libros)
+    //      y QR (tech). Cámara trasera recordada; baja a la cámara al abrir. ----
+    const REAR_KEY = 'biblio_cam_rear_v2';
+    const SCAN_FORMATS = [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE,
+    ].filter(f => f != null);
+    const DET_FMT = new Map([
+      [ZXing.BarcodeFormat.QR_CODE, 'qr_code'], [ZXing.BarcodeFormat.EAN_13, 'ean_13'],
+      [ZXing.BarcodeFormat.EAN_8, 'ean_8'], [ZXing.BarcodeFormat.UPC_A, 'upc_a'],
+      [ZXing.BarcodeFormat.UPC_E, 'upc_e'], [ZXing.BarcodeFormat.CODE_128, 'code_128'],
+      [ZXing.BarcodeFormat.CODE_39, 'code_39'], [ZXing.BarcodeFormat.ITF, 'itf'],
+    ]);
+    const scan = { engine: null, stream: null, raf: null, reader: null, detector: null, stopped: true };
+
+    function filterRear(v) { const f = v.filter(d => /back|rear|trasera|environment/i.test(d.label)); return f.length ? f : v; }
+    function defRear(p) { if (!p.length) return null; const s = localStorage.getItem(REAR_KEY); if (s && p.some(d => d.deviceId === s)) return s; const c0 = p.find(d => /\b0\b/.test(d.label)); return (c0 || p[0]).deviceId; }
+    async function listCams() {
+      let cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      if (cams.length && !cams[0].label) {
+        try { const t = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); t.getTracks().forEach(x => x.stop()); } catch {}
+        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      }
+      return cams;
+    }
+    $('camSelect').addEventListener('change', (e) => { localStorage.setItem(REAR_KEY, e.target.value); scanWith(e.target.value); });
+
+    $('scanBtn').addEventListener('click', startScan);
+    async function startScan() {
+      show('info', 'Apuntá al código del material…');
+      scan.stopped = false;
+      try {
+        const pool = filterRear(await listCams());
+        if (pool.length > 1) { $('camSelect').innerHTML = pool.map((d, i) => `<option value="${d.deviceId}">${d.label || ('Cámara ' + (i + 1))}</option>`).join(''); $('camSelect').classList.remove('hidden'); }
+        const def = defRear(pool); if (def) $('camSelect').value = def;
+        await scanWith(def);
+      } catch (e) { show('no', 'No se pudo abrir la cámara: ' + (e && e.message ? e.message : e)); }
+    }
+    async function scanWith(deviceId) {
+      stopStream(); scan.stopped = false;
+      $('video').classList.remove('hidden');
+      $('video').scrollIntoView({ behavior: 'smooth', block: 'center' });   // bajar a la cámara
+      const v = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (deviceId) v.deviceId = { exact: deviceId }; else v.facingMode = { ideal: 'environment' };
+
+      let detFormats = null;
+      if ('BarcodeDetector' in window) {
+        try { const sup = await window.BarcodeDetector.getSupportedFormats(); detFormats = SCAN_FORMATS.map(f => DET_FMT.get(f)).filter(Boolean).filter(s => sup.includes(s)); } catch {}
+      }
+      if (detFormats && detFormats.length) {
+        scan.engine = 'native';
+        scan.detector = new window.BarcodeDetector({ formats: detFormats });
+        try { scan.stream = await navigator.mediaDevices.getUserMedia({ video: v }); $('video').srcObject = scan.stream; await $('video').play().catch(() => {}); detectLoop(); }
+        catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      } else {
+        scan.engine = 'zxing';
+        const hints = new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, SCAN_FORMATS); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        scan.reader = new ZXing.BrowserMultiFormatReader(hints);
+        try { await scan.reader.decodeFromConstraints({ video: v }, $('video'), (res) => { if (res && !scan.stopped) { const t = res.getText(); stopScan(); resolver(t); } }); }
+        catch { show('no', 'Esa cámara no abrió, probá otra.'); }
+      }
+    }
+    async function detectLoop() {
+      if (scan.stopped || scan.engine !== 'native') return;
+      try { const codes = await scan.detector.detect($('video')); const val = codes && codes.length ? codes[0].rawValue : ''; if (val) { stopScan(); resolver(val); return; } } catch {}
+      scan.raf = requestAnimationFrame(detectLoop);
+    }
+    function stopStream() {
+      if (scan.raf) { cancelAnimationFrame(scan.raf); scan.raf = null; }
+      try { if (scan.reader) scan.reader.reset(); } catch {}
+      scan.reader = null;
+      if (scan.stream) { scan.stream.getTracks().forEach(t => t.stop()); scan.stream = null; }
+      $('video').srcObject = null;
+    }
+    function stopScan() { scan.stopped = true; stopStream(); $('video').classList.add('hidden'); $('camSelect').classList.add('hidden'); }
+
+    async function resolver(codigo) {
+      $('copias').innerHTML = ''; show('info', 'Buscando material…');
+      try {
+        const r = await fetch('/api/mostrador/material?para=devolucion&codigo=' + encodeURIComponent(codigo));
+        if (al401(r)) return;
+        const d = await r.json();
+        if (d.kind === 'material') {
+          if (!d.material.seleccionable) { show('no', `${d.material.descripcion} no figura como prestado (${d.material.estado}).`); return; }
+          seleccionar(d.material.id, d.material.descripcion);
+        } else if (d.kind === 'libro') {
+          if (!d.copias.length) { show('no', `«${d.titulo}»: no hay copias en préstamo.`); return; }
+          if (d.copias.length === 1) { const c = d.copias[0]; seleccionar(c.id, `${d.titulo} (copia ${c.numero_copia})`); }
+          else {
+            hideMsg();
+            $('copias').innerHTML = `<p class="vacio">«${d.titulo}» — ¿qué copia se devuelve?</p>` +
+              d.copias.map(c => `<button class="chip" onclick="window._pick(${c.id},'${d.titulo.replace(/'/g, "")} (copia ${c.numero_copia})')">Copia ${c.numero_copia}</button>`).join('');
+          }
+        } else { show('no', d.mensaje || 'No se encontró el material.'); }
+      } catch { show('no', 'Error de red. Reintentá.'); }
+    }
+    window._pick = (id, desc) => { $('copias').innerHTML = ''; seleccionar(id, desc); };
+
+    function seleccionar(id, desc) {
+      sel = { id, desc }; hideMsg();
+      $('matDesc').textContent = desc;
+      $('obsBox').classList.add('hidden'); $('notas').value = '';
+      $('scanSec').classList.add('hidden'); $('confirmSec').classList.remove('hidden');
+    }
+
+    $('okBtn').addEventListener('click', () => confirmar('ok', null));
+    $('obsBtn').addEventListener('click', () => $('obsBox').classList.remove('hidden'));
+    $('obsConfirm').addEventListener('click', () => confirmar('observacion', $('notas').value || null));
+    $('cancelar').addEventListener('click', volver);
+
+    async function confirmar(condicion, notas) {
+      try {
+        const r = await fetch('/api/mostrador/devolucion', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ material_id: sel.id, condicion, notas }),
+        });
+        if (al401(r)) return;
+        const d = await r.json();
+        if (!r.ok) { show('no', d.detail || 'No se pudo registrar la devolución.'); return; }
+        show('ok', `${d.mensaje} Lo tenía: ${d.devuelto_por}.`);
+        volver();
+      } catch { show('no', 'Error de red. Reintentá.'); }
+    }
+    function volver() { sel = null; $('confirmSec').classList.add('hidden'); $('scanSec').classList.remove('hidden'); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <title>Ingreso · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); padding: 1.5rem;
+    }
+    .card { width: 100%; max-width: 24rem; background: var(--surface); border-radius: 1rem; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+    .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.5rem; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin: .8rem 0 .4rem; }
+    input { width: 100%; padding: .8rem; font-size: 1.05rem; border: 1px solid var(--border); border-radius: .6rem; background: var(--bg); color: var(--text); }
+    input:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+    button { width: 100%; margin-top: 1.25rem; padding: .8rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.sec { background: var(--border); margin-top: .6rem; }
+    button:disabled { opacity: .45; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; }
+    .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; }
+    .msg.ok { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    .links { margin-top: 1rem; display: grid; gap: .5rem; }
+    .links a { color: var(--link); text-decoration: none; font-size: .95rem; padding: .6rem .8rem; background: var(--bg); border-radius: .6rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>🔐 Ingreso · biblioteca</h1>
+    <p class="sub">Acceso para encargados y admin.</p>
+
+    <!-- Formulario -->
+    <section id="form">
+      <label for="dni">DNI</label>
+      <input id="dni" inputmode="numeric" autocomplete="username" placeholder="Tu DNI">
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button id="entrar" type="button">Entrar</button>
+      <div id="msg" class="msg"></div>
+    </section>
+
+    <!-- Logueado -->
+    <section id="logueado" style="display:none">
+      <div class="msg show ok" id="hola"></div>
+      <div class="links">
+        <a href="/mostrador.html">🏫 Mostrador — préstamos</a>
+        <a href="/devolucion.html">↩️ Devolución</a>
+        <a href="/materiales.html">📖 Alta de libros (catálogo)</a>
+      </div>
+      <button id="salir" type="button" class="sec">Cerrar sesión</button>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
+
+    function verLogueado(data) {
+      $('form').style.display = 'none';
+      $('logueado').style.display = '';
+      const nombre = [data.nombre, data.apellido].filter(Boolean).join(' ') || ('DNI ' + data.dni);
+      $('hola').textContent = `Sesión iniciada: ${nombre} (${data.rol}).`;
+    }
+
+    // ¿ya hay sesión?
+    fetch('/api/auth/me').then(r => r.ok ? r.json().then(verLogueado) : null);
+
+    $('entrar').addEventListener('click', entrar);
+    $('pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+
+    async function entrar() {
+      const btn = $('entrar');
+      btn.disabled = true; btn.textContent = 'Entrando…';
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dni: $('dni').value, password: $('pass').value }),
+        });
+        if (r.ok) { verLogueado(await r.json()); }
+        else if (r.status === 422) { show('no', 'Revisá el DNI.'); }
+        else { const d = await r.json().catch(() => ({})); show('no', d.detail || 'No se pudo iniciar sesión.'); }
+      } catch { show('no', 'Error de red. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+    }
+
+    $('salir').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      location.reload();
+    });
+  </script>
+</body>
+</html>

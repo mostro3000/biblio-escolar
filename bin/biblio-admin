@@ -1,0 +1,3 @@
+#!/bin/sh
+# Crea/actualiza un usuario admin.  Uso: biblio-admin <DNI> [contraseña]
+exec /opt/biblio/venv/bin/python /opt/biblio/scripts/crear_admin.py "$@"

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <title>Panel de administración · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 34rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    h2 { font-size: .95rem; color: var(--link); margin: 1.6rem 0 .6rem; border-top: 1px solid var(--border); padding-top: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .count { background: var(--border); color: var(--text); font-size: .72rem; border-radius: 1rem; padding: .1rem .55rem; font-weight: 700; }
+    .count.zero { opacity: .45; }
+    button { padding: .55rem .8rem; font-size: .85rem; font-weight: 600; border: none; border-radius: .5rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.ok { background: #16a34a; } button.warn { background: #b45309; } button.sec { background: var(--border); } button.danger { background: #b91c1c; }
+    button:disabled { opacity: .45; }
+    input[type=text] { width: 100%; padding: .65rem; border-radius: .6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: .95rem; }
+    .resumen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .3rem; }
+    @media (min-width: 34rem) { .resumen { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .stat { background: var(--bg); border-radius: .6rem; padding: .7rem; text-align: center; }
+    .stat .num { font-size: 1.5rem; font-weight: 800; } .stat .lbl { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .stat.alarm .num { color: var(--danger-text); }
+    .item { background: var(--bg); border-radius: .6rem; padding: .7rem .85rem; margin-bottom: .5rem; }
+    .item .h { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
+    .item .nm { font-weight: 700; } .item .meta { color: var(--muted); font-size: .76rem; margin-top: .2rem; }
+    .acts { display: flex; gap: .4rem; flex-wrap: wrap; flex: none; }
+    .sev-alta { color: var(--danger-text); } .sev-media { color: var(--warn-text); } .sev-baja { color: var(--ok-text); }
+    .pill { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 1rem; }
+    .p-activo { background: rgba(34,197,94,.15); color: var(--ok-text); } .p-suspendido { background: rgba(239,68,68,.15); color: var(--danger-text); } .p-pendiente { background: rgba(245,158,11,.15); color: var(--warn-text); }
+    .vacio { color: #64748b; font-size: .85rem; }
+    .searchrow { display: flex; gap: .5rem; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; } .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; } .msg.ok { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    .gate { text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>🛠️ Panel de administración</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <b style="color:var(--text)">Admin</b>
+    </nav>
+
+    <div id="gate" class="gate">Cargando…</div>
+
+    <div id="panel" style="display:none">
+      <div class="resumen" id="resumen"></div>
+
+      <h2>🕵️ Onboardings en revisión <span class="count" id="c_rev">0</span></h2>
+      <p class="vacio" style="margin-top:-.3rem;font-size:.78rem">Quedaron en zona gris (la cara no coincidió con claridad). Verificá el DNI en persona antes de aprobar.</p>
+      <div id="revision"></div>
+
+      <h2>⚠️ Incidentes abiertos <span class="count" id="c_inc">0</span></h2>
+      <div id="incidentes"></div>
+
+      <h2>🔧 Materiales fuera de servicio <span class="count" id="c_mat">0</span></h2>
+      <div id="materiales"></div>
+
+      <h2>👤 Personas</h2>
+      <div class="searchrow">
+        <input type="text" id="q" placeholder="Buscar por DNI, nombre o apellido…" autocomplete="off">
+        <button id="buscarBtn" type="button">Buscar</button>
+      </div>
+      <div class="searchrow" style="margin-top:.5rem">
+        <select id="fRol" style="flex:1;width:auto">
+          <option value="">Todos los roles</option>
+          <option value="alumno">Alumnos</option>
+          <option value="docente">Docentes</option>
+          <option value="encargado">Encargados</option>
+          <option value="directivo">Directivos</option>
+          <option value="admin">Admins</option>
+        </select>
+        <select id="fEstado" style="flex:1;width:auto">
+          <option value="">Todos los estados</option>
+          <option value="activo">Activos</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="suspendido">Suspendidos</option>
+        </select>
+        <button id="verListaBtn" type="button" class="sec">Ver lista</button>
+      </div>
+      <div class="searchrow" style="margin-top:.5rem">
+        <input type="text" id="nuevoDni" placeholder="Crear — DNI nuevo" inputmode="numeric" autocomplete="off">
+        <select id="nuevoRol" style="flex:0 0 auto;width:auto">
+          <option value="alumno">alumno</option>
+          <option value="docente">docente</option>
+          <option value="encargado">encargado</option>
+          <option value="directivo">directivo</option>
+          <option value="admin">admin</option>
+        </select>
+        <button id="crearBtn" type="button" class="ok">Crear</button>
+      </div>
+      <div id="pTot" style="color:var(--muted);font-size:.8rem;margin-top:.7rem"></div>
+      <div id="personas"></div>
+      <button id="verMasBtn" type="button" class="sec" style="display:none;margin-top:.5rem">Ver más</button>
+    </div>
+
+    <div id="msg" class="msg"></div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+    const fmt = (s) => s ? new Date(s).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+    function flash(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; setTimeout(() => { m.className = 'msg'; }, 3500); }
+    function al401(r) { if (r.status === 401) { location.href = '/login.html'; return true; } return false; }
+
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    // gate: solo admin
+    (async function () {
+      let me;
+      try { const r = await fetch('/api/auth/me'); if (!r.ok) { location.href = '/login.html'; return; } me = await r.json(); }
+      catch { $('gate').textContent = 'Error de red.'; return; }
+      if (me.rol !== 'admin') {
+        $('gate').innerHTML = 'Esta sección es solo para administradores.<br><a class="salir" href="/mostrador.html">← Ir al mostrador</a>';
+        return;
+      }
+      window._meDni = me.dni;   // para no dejar que el admin se cambie/suspenda a sí mismo
+      $('gate').style.display = 'none'; $('panel').style.display = '';
+      cargarTodo();
+    })();
+
+    async function cargarTodo() { await Promise.all([cargarResumen(), cargarRevision(), cargarIncidentes(), cargarMateriales()]); }
+
+    async function cargarResumen() {
+      const r = await fetch('/api/admin/resumen'); if (al401(r)) return; const d = await r.json();
+      const cards = [
+        ['revision_pendiente', 'En revisión', true],
+        ['incidentes_abiertos', 'Incidentes', true],
+        ['prestamos_atrasados', 'Atrasados', true],
+        ['materiales_en_reparacion', 'En reparación', false],
+        ['materiales_baja', 'De baja', false],
+        ['suspendidos', 'Suspendidos', false],
+      ];
+      $('resumen').innerHTML = cards.map(([k, lbl, alarm]) =>
+        `<div class="stat ${alarm && d[k] > 0 ? 'alarm' : ''}"><div class="num">${d[k]}</div><div class="lbl">${lbl}</div></div>`).join('');
+    }
+
+    function setCount(id, n) { const e = $(id); e.textContent = n; e.classList.toggle('zero', n === 0); }
+
+    async function cargarRevision() {
+      const r = await fetch('/api/admin/revision'); if (al401(r)) return; const list = await r.json();
+      setCount('c_rev', list.length);
+      $('revision').innerHTML = list.length ? list.map(p => `
+        <div class="item"><div class="h">
+          <div><div class="nm">${esc([p.nombre, p.apellido].filter(Boolean).join(' ') || ('DNI ' + p.dni))}</div>
+            <div class="meta">${esc(p.rol)} · DNI ${esc(p.dni)} · registró ${fmt(p.creado_at)}</div></div>
+          <div class="acts">
+            <button class="ok" onclick="window._persona(${p.id},'activo',this)">Aprobar</button>
+            <button class="danger" onclick="window._persona(${p.id},'suspendido',this)">Rechazar</button>
+          </div></div></div>`).join('') : '<p class="vacio">Nada en revisión. 👍</p>';
+    }
+
+    async function cargarIncidentes() {
+      const r = await fetch('/api/admin/incidentes'); if (al401(r)) return; const list = await r.json();
+      setCount('c_inc', list.length);
+      $('incidentes').innerHTML = list.length ? list.map(i => `
+        <div class="item"><div class="h">
+          <div><div class="nm">${esc(i.material)} <span class="sev-${i.severidad}" style="font-size:.72rem">(${i.severidad})</span></div>
+            <div class="meta">${esc(i.descripcion)}<br>${fmt(i.creado_at)}${i.creado_por ? ' · ' + esc(i.creado_por) : ''}</div></div>
+          <div class="acts"><button class="ok" onclick="window._resolver(${i.id},this)">Resolver</button></div>
+        </div></div>`).join('') : '<p class="vacio">Sin incidentes abiertos. 👍</p>';
+    }
+
+    async function cargarMateriales() {
+      // los que están en_reparacion o baja: se buscan vía resumen? no hay endpoint de lista directa,
+      // se listan resolviendo desde incidentes no sirve -> usamos un endpoint dedicado liviano:
+      const r = await fetch('/api/admin/materiales_fuera'); if (al401(r)) return;
+      if (!r.ok) { $('materiales').innerHTML = '<p class="vacio">—</p>'; setCount('c_mat', 0); return; }
+      const list = await r.json();
+      setCount('c_mat', list.length);
+      $('materiales').innerHTML = list.length ? list.map(m => `
+        <div class="item"><div class="h">
+          <div><div class="nm">${esc(m.descripcion)}</div><div class="meta">estado: ${esc(m.estado)}</div></div>
+          <div class="acts"><button class="ok" onclick="window._material(${m.id},'disponible',this)">Volver a disponible</button></div>
+        </div></div>`).join('') : '<p class="vacio">Todo operativo. 👍</p>';
+    }
+
+    // ---- acciones ----
+    window._persona = async (id, estado, btn) => {
+      btn.disabled = true;
+      const r = await fetch(`/api/admin/personas/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { flash('no', d.detail || 'No se pudo.'); btn.disabled = false; return; }
+      flash('ok', d.mensaje); cargarRevision(); cargarResumen(); if (_pOffset > 0) cargarPersonas(true);
+    };
+    window._resolver = async (id, btn) => {
+      btn.disabled = true;
+      const r = await fetch(`/api/admin/incidentes/${id}/resolver`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resuelto: true }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { flash('no', d.detail || 'No se pudo.'); btn.disabled = false; return; }
+      flash('ok', d.mensaje); cargarIncidentes(); cargarResumen();
+    };
+    window._material = async (id, estado, btn) => {
+      btn.disabled = true;
+      const r = await fetch(`/api/admin/material/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { flash('no', d.detail || 'No se pudo.'); btn.disabled = false; return; }
+      flash('ok', d.mensaje); cargarMateriales(); cargarResumen();
+    };
+
+    // ---- crear persona ----
+    $('crearBtn').addEventListener('click', crearPersona);
+    $('nuevoDni').addEventListener('keydown', (e) => { if (e.key === 'Enter') crearPersona(); });
+    async function crearPersona() {
+      const dni = $('nuevoDni').value.trim();
+      const rol = $('nuevoRol').value;
+      if (!dni) { flash('no', 'Ingresá un DNI.'); return; }
+      const r = await fetch('/api/admin/personas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dni, rol }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { flash('no', (d.detail && (d.detail[0]?.msg || d.detail)) || 'No se pudo crear.'); return; }
+      flash('ok', d.mensaje);
+      $('nuevoDni').value = '';
+      $('q').value = d.dni; $('fRol').value = ''; $('fEstado').value = '';   // mostrarla sin filtros
+      cargarPersonas(true); cargarResumen();
+    }
+
+    // ---- listar / buscar personas (filtros + paginado) ----
+    const ROLES = ['alumno', 'docente', 'encargado', 'directivo', 'admin'];
+    const SEL = 'padding:.35rem;border-radius:.4rem;background:var(--bg);color:var(--text);border:1px solid var(--border);font-size:.85rem';
+    let _pOffset = 0;
+
+    $('buscarBtn').addEventListener('click', () => cargarPersonas(true));
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') cargarPersonas(true); });
+    $('verListaBtn').addEventListener('click', () => { $('q').value = ''; cargarPersonas(true); });
+    $('fRol').addEventListener('change', () => cargarPersonas(true));
+    $('fEstado').addEventListener('change', () => cargarPersonas(true));
+    $('verMasBtn').addEventListener('click', () => cargarPersonas(false));
+
+    function personaRow(p) {
+      const nm = esc([p.nombre, p.apellido].filter(Boolean).join(' ') || ('DNI ' + p.dni));
+      const esSelf = p.dni === window._meDni;
+      const accion = esSelf ? '<span class="meta">vos</span>'
+        : (p.estado === 'suspendido'
+          ? `<button class="ok" onclick="window._persona(${p.id},'activo',this)">Reactivar</button>`
+          : `<button class="danger" onclick="window._persona(${p.id},'suspendido',this)">Suspender</button>`);
+      const esStaff = p.rol === 'encargado' || p.rol === 'admin';
+      const rolCtrl = esSelf
+        ? `<span class="meta">rol: ${esc(p.rol)} (no editable)</span>`
+        : `<span class="meta">rol:</span> <select style="${SEL}" onchange="window._rol(${p.id}, this.value)">`
+          + ROLES.map(r => `<option value="${r}"${r === p.rol ? ' selected' : ''}>${r}</option>`).join('')
+          + `</select>`
+          + (esStaff ? ` <button class="sec" onclick="window._clave(${p.id},'${p.dni}')">🔑 Clave</button>` : '');
+      return `<div class="item">
+        <div class="h">
+          <div><div class="nm">${nm} <span class="pill p-${p.estado}">${p.estado}</span></div>
+            <div class="meta">${esc(p.rol)} · DNI ${esc(p.dni)}</div></div>
+          <div class="acts">${accion}</div>
+        </div>
+        <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">${rolCtrl}</div>
+      </div>`;
+    }
+
+    async function cargarPersonas(reset) {
+      if (reset) { _pOffset = 0; $('personas').innerHTML = ''; }
+      const q = $('q').value.trim(), rol = $('fRol').value, estado = $('fEstado').value;
+      let url = `/api/admin/personas?q=${encodeURIComponent(q)}&offset=${_pOffset}&limit=50`;
+      if (rol) url += `&rol=${rol}`;
+      if (estado) url += `&estado=${estado}`;
+      const r = await fetch(url); if (al401(r)) return; const d = await r.json();
+      $('personas').insertAdjacentHTML('beforeend', d.items.map(personaRow).join(''));
+      _pOffset += d.items.length;
+      if (!_pOffset) { $('personas').innerHTML = '<p class="vacio">Sin resultados.</p>'; $('pTot').textContent = ''; }
+      else { $('pTot').textContent = `Mostrando ${_pOffset} de ${d.total}`; }
+      $('verMasBtn').style.display = (_pOffset < d.total) ? '' : 'none';
+    }
+
+    window._rol = async (id, rol) => {
+      if (!confirm(`¿Cambiar el rol a "${rol}"?`)) { cargarPersonas(true); return; }
+      const r = await fetch(`/api/admin/personas/${id}/rol`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rol }) });
+      if (al401(r)) return; const d = await r.json();
+      flash(r.ok ? 'ok' : 'no', d.mensaje || d.detail || 'No se pudo.');
+      cargarPersonas(true); cargarResumen();
+    };
+    window._clave = async (id, dni) => {
+      const pw = prompt(`Nueva contraseña para DNI ${dni} (mínimo 6 caracteres):`);
+      if (pw === null) return;
+      if (pw.length < 6) { flash('no', 'La contraseña debe tener al menos 6 caracteres.'); return; }
+      const r = await fetch(`/api/admin/personas/${id}/password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+      if (al401(r)) return; const d = await r.json();
+      flash(r.ok ? 'ok' : 'no', d.mensaje || d.detail || 'No se pudo.');
+    };
+  </script>
+</body>
+</html>

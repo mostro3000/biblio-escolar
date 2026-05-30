@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <title>Alta de tecnología y mapas · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 32rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin: .8rem 0 .3rem; }
+    input, select { width: 100%; padding: .7rem; font-size: 1rem; border: 1px solid var(--border); border-radius: .6rem; background: var(--bg); color: var(--text); }
+    input:focus, select:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+    .row { display: flex; gap: .7rem; } .row > div { flex: 1; display: flex; flex-direction: column; }
+    /* el input va al fondo de su columna: así "Cantidad" y "Prefijo del código" quedan alineados aunque el label ocupe 2 líneas */
+    .row > div > input { margin-top: auto; }
+    button { width: 100%; margin-top: 1rem; padding: .8rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .6rem; background: #3b82f6; color: white; cursor: pointer; }
+    button.sec { background: var(--border); } button:disabled { opacity: .45; }
+    .hint { color: #64748b; font-size: .78rem; margin-top: .35rem; }
+    .msg { margin-top: 1rem; padding: .8rem; border-radius: .6rem; font-size: .9rem; display: none; }
+    .msg.show { display: block; } .msg.no { background: rgba(239,68,68,.12); border: 1px solid #ef4444; } .msg.ok { background: rgba(34,197,94,.12); border: 1px solid #22c55e; }
+    #resultado { margin-top: 1.3rem; }
+    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .7rem; margin-top: .6rem; }
+    .label { background: #fff; color: #111; border-radius: .5rem; padding: .6rem; text-align: center; }
+    .label .qr { display: flex; justify-content: center; }
+    .label .cod { font-family: ui-monospace, monospace; font-weight: 800; font-size: 1rem; margin-top: .3rem; letter-spacing: .03em; }
+    .label .tip { font-size: .7rem; color: #444; text-transform: capitalize; }
+    .label .esc { font-size: .65rem; color: #666; margin-top: .15rem; }
+    @media print {
+      body { background: #fff; padding: 0; display: block; }
+      .card { box-shadow: none; max-width: none; background: #fff; padding: 0; }
+      .top, nav, #form, #msg, h1, .printhide { display: none !important; }
+      #resultado { margin: 0; }
+      .labels { gap: .4cm; }
+      .label { border: 1px dashed #999; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>🖥️ Alta de tecnología y mapas</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <b style="color:var(--text)">Tecnología</b>
+      <a href="/reportes.html" style="color:var(--link);text-decoration:none;display:none">Reportes</a>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+
+    <section id="form">
+      <p style="font-size:.9rem;color:var(--text2);margin:0">Para materiales <b>sin ISBN</b> (netbooks, adaptadores, mapas…). Se les genera un código interno propio y una etiqueta con QR para imprimir y pegar.</p>
+
+      <label for="tipo">Tipo</label>
+      <select id="tipo">
+        <option value="netbook">Netbook</option>
+        <option value="raspberry">Raspberry Pi 400</option>
+        <option value="raton">Ratón</option>
+        <option value="adaptador">Adaptador</option>
+        <option value="mapa">Mapa</option>
+        <option value="otro">Otro</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label for="cantidad">Cantidad</label>
+          <input id="cantidad" inputmode="numeric" value="1">
+        </div>
+        <div>
+          <label for="prefijo">Prefijo del código</label>
+          <input id="prefijo" autocomplete="off" value="NB">
+        </div>
+      </div>
+      <p class="hint">Los códigos se numeran solos: <span id="ejemplo">NB-001, NB-002…</span></p>
+
+      <label for="etiqueta">Etiqueta / nota (opcional)</label>
+      <input id="etiqueta" autocomplete="off" placeholder="Ej. Aula 3, Lenovo ThinkPad, donado 2025">
+
+      <button id="crearBtn" type="button">Crear y generar etiquetas</button>
+    </section>
+
+    <div id="msg" class="msg"></div>
+
+    <section id="resultado"></section>
+  </main>
+
+  <script src="/vendor/qrcode.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+    function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
+    function hideMsg() { $('msg').className = 'msg'; }
+
+    fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    const PREF = { netbook: 'NB', raspberry: 'RPI', raton: 'RT', adaptador: 'AD', mapa: 'MP', otro: 'OT' };
+    // al cambiar el tipo, sugerir prefijo (solo si el usuario no lo tocó a algo propio)
+    let prefijoAuto = true;
+    $('prefijo').addEventListener('input', () => { prefijoAuto = false; actualizarEjemplo(); });
+    $('tipo').addEventListener('change', () => { if (prefijoAuto) $('prefijo').value = PREF[$('tipo').value]; actualizarEjemplo(); });
+    function sanPref(v) { return ([...v.toUpperCase()].filter(c => /[A-Z0-9]/.test(c)).join('')).slice(0, 8) || PREF[$('tipo').value]; }
+    function actualizarEjemplo() { const p = sanPref($('prefijo').value); $('ejemplo').textContent = `${p}-001, ${p}-002…`; }
+
+    $('crearBtn').addEventListener('click', async () => {
+      hideMsg();
+      const tipo = $('tipo').value;
+      const cantidad = parseInt($('cantidad').value, 10);
+      const prefijo = sanPref($('prefijo').value);
+      const etiqueta = $('etiqueta').value.trim() || null;
+      if (!(cantidad >= 1 && cantidad <= 50)) { show('no', 'La cantidad debe estar entre 1 y 50.'); return; }
+      const btn = $('crearBtn'); btn.disabled = true; btn.textContent = 'Creando…';
+      try {
+        const r = await fetch('/api/materiales/tech', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tipo, cantidad, prefijo, etiqueta }),
+        });
+        if (r.status === 401) { location.href = '/login.html'; return; }
+        const d = await r.json();
+        if (!r.ok) { show('no', (d.detail && (d.detail[0]?.msg || d.detail)) || 'No se pudo crear.'); return; }
+        show('ok', d.mensaje + ' Imprimí las etiquetas y pegalas en cada material.');
+        renderLabels(d.creados, etiqueta);
+      } catch { show('no', 'Error de red. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = 'Crear y generar etiquetas'; }
+    });
+
+    function renderLabels(creados, etiqueta) {
+      const cont = $('resultado');
+      cont.innerHTML =
+        `<button id="imprimir" type="button" class="printhide">🖨️ Imprimir etiquetas</button>
+         <div class="labels" id="labels"></div>`;
+      const box = $('labels');
+      creados.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'label';
+        div.innerHTML = `<div class="qr"></div>
+          <div class="cod">${esc(m.codigo)}</div>
+          <div class="tip">${esc(m.tipo)}${etiqueta ? ' · ' + esc(etiqueta) : ''}</div>
+          <div class="esc">Biblioteca · @@ESCUELA@@</div>`;
+        box.appendChild(div);
+        // el QR codifica EXACTAMENTE el código interno (así el escaneo en mostrador resuelve)
+        new QRCode(div.querySelector('.qr'), { text: m.codigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+      });
+      $('imprimir').addEventListener('click', () => window.print());
+      cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    actualizarEjemplo();
+  </script>
+</body>
+</html>

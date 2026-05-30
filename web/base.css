@@ -1,0 +1,145 @@
+/* ===== Tema (oscuro por defecto, claro por sistema, + override manual) =====
+   Las páginas usan var(--x) para los colores. El tema se resuelve así:
+   - sin override: sigue el sistema (prefers-color-scheme).
+   - con override manual (botón ☀/🌙): <html data-theme="light|dark"> manda.       */
+:root {
+  --bg: #0f172a; --surface: #1e293b; --nav: #131c30; --hover: #243049;
+  --text: #e2e8f0; --text2: #cbd5e1; --muted: #94a3b8; --border: #334155;
+  --link: #93c5fd; --danger-text: #fca5a5; --ok-text: #86efac; --warn-text: #fcd34d;
+  --btn-sec: #3f4e66;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef2f7; --surface: #ffffff; --nav: #e8edf5; --hover: #dbe3ee;
+  --text: #0f172a; --text2: #334155; --muted: #64748b; --border: #cbd5e1;
+  --link: #2563eb; --danger-text: #b91c1c; --ok-text: #15803d; --warn-text: #a16207;
+  --btn-sec: #e2e8f0;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef2f7; --surface: #ffffff; --nav: #e8edf5; --hover: #dbe3ee;
+    --text: #0f172a; --text2: #334155; --muted: #64748b; --border: #cbd5e1;
+    --link: #2563eb; --danger-text: #b91c1c; --ok-text: #15803d; --warn-text: #a16207;
+    --btn-sec: #e2e8f0;
+  }
+}
+
+/* Botones secundarios (Ver lista, Ver más, chips, etc.): contorno azul, claramente
+   clickeable en ambos temas (antes quedaban gris-borde + texto blanco = "deshabilitado"). */
+button.sec, button.chip {
+  background: transparent !important;
+  color: var(--link) !important;
+  border: 1px solid var(--link) !important;
+  font-weight: 600;
+}
+button.sec:hover, button.chip:hover { background: var(--hover) !important; }
+
+/* "salir" como botón secundario (antes era texto suelto). Hover rojizo = acción de salida.
+   !important porque cada página define su propio `a.salir` con color/tamaño de texto. */
+a.salir, .salir {
+  display: inline-flex !important; align-items: center; gap: .3rem;
+  padding: .34rem .75rem !important;
+  border: 1px solid var(--border) !important; border-radius: .55rem;
+  background: var(--bg); color: var(--text2) !important;
+  text-decoration: none !important; font-size: .78rem !important; font-weight: 700;
+  line-height: 1.2; white-space: nowrap;
+}
+a.salir:hover, .salir:hover {
+  border-color: var(--danger-text) !important; color: var(--danger-text) !important;
+  background: color-mix(in srgb, var(--danger-text) 12%, transparent);
+}
+/* La cabecera alinea h1 y salir por baseline; con el botón conviene centrarlos. */
+.top { align-items: center !important; }
+
+/* TODAS las páginas de staff con el MISMO ancho → no "salta" más ancho/angosto al
+   cambiar de página (cada una tenía su propio max-width: 28/30/32/34rem). En PC, más
+   ancho parejo. Las de formulario/credencial (sin menú) quedan con su ancho. */
+body:has(nav) .card { max-width: 34rem; }
+@media (min-width: 56rem) {
+  body:has(nav) .card { max-width: 52rem; }
+}
+/* Listas largas (personas en admin, catálogo) en 2 columnas en pantallas anchas.
+   Solo en páginas de staff (con menú); la credencial usa #lista en tarjeta angosta. */
+@media (min-width: 60rem) {
+  body:has(nav) #personas, body:has(nav) #lista {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; align-items: start;
+  }
+}
+
+/* Tamaño base del texto: cambiar este único número escala todas las letras. */
+html { font-size: 21px; }
+
+/* Barra de navegación de staff: GRILLA de columnas fijas → se ve IGUAL en todas las
+   páginas (no depende del ancho de la tarjeta) y entra TODO sin scroll horizontal.
+   Celular: 2 columnas · pantalla media: 4 · PC ancha: una sola fila. */
+nav {
+  background: var(--nav);
+  border: 1px solid var(--border);
+  border-radius: .7rem;
+  padding: .4rem !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));   /* minmax(0,..) → las columnas pueden achicarse (no desbordan) */
+  gap: .3rem !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+@media (min-width: 30rem) { nav { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 56rem) { nav { display: flex !important; flex-wrap: wrap; gap: .25rem .4rem !important; } }
+nav a, nav b {
+  text-align: center;
+  padding: .42rem .35rem;
+  border-radius: .5rem;
+  line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+nav a:hover { background: var(--hover); }
+nav b { color: #fff !important; background: #3b82f6; }   /* ítem activo = pestaña azul */
+
+/* Botón flotante para cambiar el tema (lo inyecta theme.js en todas las páginas). */
+#themeToggle {
+  position: fixed; top: .8rem; right: .8rem; z-index: 50;
+  width: 2.3rem; height: 2.3rem; padding: 0;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--text);
+  font-size: 1.05rem; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+#themeToggle:hover { filter: brightness(1.08); }
+
+/* ===== Pulido visual (aditivo; adapta al tema, no rompe estilos por página) ===== */
+/* Nunca permitir scroll horizontal / "moverse al costado" en el celular. */
+html, body { overflow-x: hidden; max-width: 100%; }
+/* CAUSA RAÍZ del desborde en celular: cada página usa `body { display:grid }` para
+   centrar la tarjeta, pero SIN columna definida el grid crea una columna `auto` que se
+   dimensiona al CONTENIDO (max-content) → la .card ignora su width:100% y se ensancha
+   más que la pantalla, arrastrando menú/botones afuera. Fijar la columna a minmax(0,1fr)
+   la limita SIEMPRE al ancho disponible. (En pantallas anchas, el max-width de la card la
+   centra igual gracias a justify-items:center.) */
+body { grid-template-columns: minmax(0, 1fr); }
+* { -webkit-tap-highlight-color: transparent; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/* Degradé sutil de fondo: un leve glow del color de acento arriba. */
+body { background-image: radial-gradient(1100px 520px at 50% -8%,
+        color-mix(in srgb, var(--link) 13%, transparent), transparent) !important; }
+h1 { letter-spacing: -.015em; }
+/* Transiciones suaves en lo interactivo y en las tarjetas/ítems. */
+a, button, input, select, textarea,
+.card, .item, .stat, .tcard, .panel, .badge, .pill {
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease,
+              box-shadow .18s ease, transform .08s ease, filter .15s ease;
+}
+button:not(:disabled):hover { filter: brightness(1.07); }
+button:not(:disabled):active { transform: translateY(1px); }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--link); color: #fff; }
+/* Borde sutil en las tarjetas (suma definición, sobre todo en modo claro). */
+.card { border: 1px solid var(--border); }
+/* Inputs/selects pueden encogerse en filas flex → no desbordan la pantalla en celular
+   (el input de búsqueda forzaba su ancho mínimo y ensanchaba toda la página). */
+input, select, textarea { min-width: 0; max-width: 100%; }
+/* Scrollbar discreta y acorde al tema. */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }

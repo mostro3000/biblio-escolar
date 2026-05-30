@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <title>Mi credencial · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: .75rem; }
+    .card { width: 100%; max-width: 26rem; background: var(--surface); border-radius: 1rem; padding: 1.25rem .75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); text-align: center; }
+    h1 { font-size: 1.1rem; margin: 0 0 .25rem; }
+    .nombre { font-size: 1.4rem; font-weight: 700; margin: .5rem 0; }
+    .rol { color: var(--muted); font-size: .8rem; text-transform: capitalize; }
+    .qrbox { background: #fff; border-radius: .8rem; padding: .6rem; display: block; width: 420px; max-width: 100%; margin: 1.25rem auto .5rem; }
+    #qr { line-height: 0; }
+    #qr canvas, #qr img { width: 100% !important; height: auto !important; display: block; }
+    .hint { color: var(--muted); font-size: .82rem; margin: .25rem 0 0; }
+    .bar { width: 420px; max-width: 100%; height: 4px; border-radius: 2px; background: var(--border); margin: .7rem auto 0; overflow: hidden; }
+    .bar > i { display: block; height: 100%; background: #3b82f6; transition: width .25s linear; }
+    .reloj { color: #64748b; font-size: .75rem; margin: .35rem 0 0; }
+    .offline { color: #fbbf24; font-size: .75rem; margin: .35rem 0 0; }
+    .prest { margin-top: 1.5rem; text-align: left; }
+    .prest h2 { font-size: .9rem; color: var(--link); margin: 0 0 .5rem; }
+    .item { background: var(--bg); border-radius: .5rem; padding: .6rem .8rem; margin-bottom: .5rem; font-size: .85rem; }
+    .item .vence { color: var(--muted); font-size: .75rem; }
+    .vacio { color: #64748b; font-size: .85rem; }
+    .msg { padding: .9rem; border-radius: .6rem; font-size: .9rem; background: rgba(59,130,246,.12); border: 1px solid #3b82f6; }
+    a.btn { display: inline-block; margin-top: 1rem; color: var(--link); text-decoration: none; font-size: .9rem; }
+    .salir { display:block; margin-top: 1.25rem; color: #64748b; font-size: .78rem; text-decoration: none; }
+    .btnpush { display: inline-flex; align-items: center; gap: .4rem; margin-top: 1rem; padding: .6rem 1rem; border: 1px solid var(--border); border-radius: .6rem; background: var(--bg); color: var(--text); font-size: .88rem; font-weight: 600; cursor: pointer; }
+    .btnpush.on { border-color: #22c55e; color: var(--ok-text); }
+    .btnpush:disabled { opacity: .5; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div id="cargando" class="msg">Cargando tu credencial…</div>
+
+    <div id="noauth" style="display:none">
+      <div class="msg">Primero tenés que registrarte.</div>
+      <a class="btn" href="/onboarding.html">Ir a registrarme →</a>
+    </div>
+
+    <div id="cred" style="display:none">
+      <h1>📚 Credencial · biblioteca</h1>
+      <div class="nombre" id="nombre"></div>
+      <div class="rol" id="rol"></div>
+      <div class="qrbox"><div id="qr"></div></div>
+      <p class="hint">Mostrale este código al encargado.</p>
+      <div class="bar"><i id="barFill" style="width:100%"></i></div>
+      <p class="reloj" id="reloj"></p>
+      <p class="offline" id="offline" style="display:none">📴 Sin conexión — el código igual se renueva.</p>
+
+      <div class="prest">
+        <h2>Mis préstamos</h2>
+        <div id="lista"></div>
+      </div>
+      <a class="btn" href="/disponibles.html">📦 ¿Hay material disponible?</a>
+      <div><button class="btnpush" id="pushBtn" type="button" style="display:none"></button></div>
+      <p class="hint" id="pushHint" style="display:none"></p>
+      <a class="salir" href="#" id="salir">cerrar sesión</a>
+    </div>
+  </main>
+
+  <script src="/vendor/qrcode.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const CACHE = 'biblio_cred_v1';   // cache del secreto p/ funcionar offline
+
+    // --- código rotativo (TOTP) calculado en el celular, igual que el server ---
+    // codigo = HMAC-SHA256(secreto, floor(unix/STEP)) → hex, primeros 12.
+    async function totp(secret, step, ahora) {
+      const contador = Math.floor((ahora ?? Date.now() / 1000) / step);
+      const msg = new Uint8Array(8);              // contador, 8 bytes big-endian
+      let n = contador;
+      for (let i = 7; i >= 0; i--) { msg[i] = n % 256; n = Math.floor(n / 256); }
+      const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+      const sig = await crypto.subtle.sign('HMAC', key, msg);
+      return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
+    }
+
+    let qr = null, lastWin = null, secret = null, step = 30;
+    function arrancarRotacion() {
+      qr = new QRCode($('qr'), { text: '…', width: 512, height: 512, correctLevel: QRCode.CorrectLevel.M });
+      const tick = async () => {
+        const now = Date.now() / 1000;
+        const win = Math.floor(now / step);
+        const restante = Math.max(0, step - (now % step));
+        $('reloj').textContent = `se renueva en ${Math.ceil(restante)} s`;
+        $('barFill').style.width = (restante / step * 100).toFixed(1) + '%';
+        if (win !== lastWin) { lastWin = win; qr.makeCode(await totp(secret, step)); }
+      };
+      tick();
+      setInterval(tick, 250);
+    }
+
+    (async function () {
+      let cred = null;
+      try {
+        const r = await fetch('/api/mi/credencial');
+        if (r.status === 401) { $('cargando').style.display = 'none'; $('noauth').style.display = ''; return; }
+        cred = await r.json();
+        localStorage.setItem(CACHE, JSON.stringify(cred));   // p/ próximas visitas offline
+      } catch {
+        const c = localStorage.getItem(CACHE);               // sin red: usar el cache
+        if (c) { cred = JSON.parse(c); $('offline').style.display = ''; }
+        else { $('cargando').textContent = 'Sin conexión. Abrí la credencial una vez con internet.'; return; }
+      }
+
+      $('cargando').style.display = 'none';
+      $('cred').style.display = '';
+      const nombre = [cred.nombre, cred.apellido].filter(Boolean).join(' ') || ('DNI ' + cred.dni);
+      $('nombre').textContent = nombre;
+      $('rol').textContent = cred.rol;
+
+      if (cred.qr_secret) {
+        secret = cred.qr_secret; step = cred.qr_step || 30;
+        arrancarRotacion();
+      } else {
+        $('qr').textContent = '(sin QR)';
+      }
+
+      // préstamos activos (solo si hay red)
+      try {
+        const pr = await fetch('/api/mi/prestamos');
+        const lista = pr.ok ? await pr.json() : [];
+        if (!lista.length) { $('lista').innerHTML = '<p class="vacio">No tenés préstamos activos.</p>'; }
+        else {
+          $('lista').innerHTML = lista.map(p =>
+            `<div class="item">${p.material}<div class="vence">vence: ${p.vence_at ? new Date(p.vence_at).toLocaleDateString() : '—'}</div></div>`
+          ).join('');
+        }
+      } catch { $('lista').innerHTML = '<p class="vacio">Préstamos no disponibles sin conexión.</p>'; }
+
+      initPush();
+    })();
+
+    // ---- avisos de vencimiento por Web Push ----
+    function urlB64ToUint8(s) {
+      const pad = '='.repeat((4 - s.length % 4) % 4);
+      const b64 = (s + pad).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(b64); const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
+    const pushSoportado = () => ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+    let pushSub = null;
+    function setPushUI(estado, hint) {
+      const b = $('pushBtn'), h = $('pushHint');
+      b.style.display = '';
+      if (estado === 'on') { b.textContent = '🔔 Avisos activados — tocá para desactivar'; b.classList.add('on'); }
+      else { b.textContent = '🔔 Activar avisos de vencimiento'; b.classList.remove('on'); }
+      if (hint) { h.textContent = hint; h.style.display = ''; } else { h.style.display = 'none'; }
+    }
+    async function initPush() {
+      if (!pushSoportado()) return;                 // navegador viejo → no mostramos nada
+      const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const instalada = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      if (iOS && !instalada) {                      // iPhone solo recibe push si la PWA está instalada
+        const h = $('pushHint');
+        h.textContent = '🔔 Para recibir avisos en iPhone: tocá Compartir → "Agregar a inicio" y abrí la app desde el ícono.';
+        h.style.display = '';
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        pushSub = await reg.pushManager.getSubscription();
+        if (Notification.permission === 'denied') { setPushUI('off', 'Los avisos están bloqueados; activalos desde los ajustes del navegador.'); }
+        else { setPushUI(pushSub ? 'on' : 'off', ''); }
+        $('pushBtn').onclick = togglePush;
+      } catch { /* SW todavía no activo */ }
+    }
+    async function togglePush() {
+      const b = $('pushBtn'); b.disabled = true;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (pushSub) {                              // ---- desactivar ----
+          const ep = pushSub.endpoint;
+          try { await pushSub.unsubscribe(); } catch {}
+          await fetch('/api/push/baja', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: ep }) }).catch(() => {});
+          pushSub = null; setPushUI('off', 'Avisos desactivados.');
+          return;
+        }
+        const perm = await Notification.requestPermission();   // ---- activar ----
+        if (perm !== 'granted') { setPushUI('off', 'No diste permiso para las notificaciones.'); return; }
+        const resp = await (await fetch('/api/push/clave')).json();
+        if (!resp.habilitado || !resp.clave_publica) { setPushUI('off', 'Los avisos no están disponibles por ahora.'); return; }
+        pushSub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(resp.clave_publica) });
+        const j = pushSub.toJSON();
+        const r = await fetch('/api/push/suscribir', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: navigator.userAgent }) });
+        if (!r.ok) { setPushUI('off', 'No se pudo guardar la suscripción. Reintentá.'); return; }
+        setPushUI('on', '¡Listo! Te avisamos cuando un préstamo venza o se atrase.');
+        fetch('/api/push/probar', { method: 'POST' }).catch(() => {});   // aviso de prueba inmediato (confirma que llega)
+      } catch {
+        setPushUI(pushSub ? 'on' : 'off', 'Hubo un problema con los avisos. Reintentá.');
+      } finally { b.disabled = false; }
+    }
+
+    $('salir').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      location.href = '/';
+    });
+  </script>
+</body>
+</html>

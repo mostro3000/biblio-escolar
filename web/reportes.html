@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Biblioteca">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>if('serviceWorker' in navigator){var _h=!!navigator.serviceWorker.controller,_r=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(_r)return;_r=true;if(_h)location.reload();});addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.png">
+  <script defer src="/nav.js"></script>
+  <title>Reportes · @@ESCUELA@@</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: start center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+    .card { width: 100%; max-width: 34rem; background: var(--surface); border-radius: 1rem; padding: 1.75rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .top { display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+    a.salir { color: var(--link); text-decoration: none; font-size: .8rem; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin: .3rem 0 1.2rem; }
+    @media (min-width: 34rem) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .stat { background: var(--bg); border-radius: .6rem; padding: .7rem; text-align: center; }
+    .stat .num { font-size: 1.6rem; font-weight: 800; } .stat .lbl { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .stat.alarm .num { color: var(--danger-text); }
+    .charts { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .panel { background: var(--bg); border: 1px solid var(--border); border-radius: .7rem; padding: .8rem; }
+    .panel h2 { font-size: .85rem; color: var(--link); margin: 0 0 .6rem; }
+    .chartbox { position: relative; height: 240px; }
+    .vacio { color: #64748b; font-size: .85rem; text-align: center; padding: 1.5rem 0; }
+    @media (min-width: 56rem) { .charts { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="top"><h1>📊 Reportes de uso</h1><a href="#" id="salir" class="salir">salir</a></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:.15rem .9rem;font-size:.8rem;margin:.2rem 0 1rem">
+      <a href="/mostrador.html" style="color:var(--link);text-decoration:none">Préstamo</a>
+      <a href="/devolucion.html" style="color:var(--link);text-decoration:none">Devolución</a>
+      <a href="/catalogo.html" style="color:var(--link);text-decoration:none">Catálogo</a>
+      <a href="/ficha.html" style="color:var(--link);text-decoration:none">Ficha</a>
+      <a href="/materiales.html" style="color:var(--link);text-decoration:none">Libros</a>
+      <a href="/tech.html" style="color:var(--link);text-decoration:none">Tecnología</a>
+      <b style="color:var(--text)">Reportes</b>
+      <a href="/admin.html" style="color:var(--link);text-decoration:none;display:none">Admin</a>
+    </nav>
+
+    <div id="cargando" class="vacio">Cargando reportes…</div>
+
+    <div id="cont" style="display:none">
+      <div class="stats" id="stats"></div>
+      <div class="charts">
+        <div class="panel"><h2>📈 Préstamos por mes</h2><div class="chartbox"><canvas id="cMes"></canvas></div></div>
+        <div class="panel"><h2>📦 Préstamos por tipo</h2><div class="chartbox"><canvas id="cTipo"></canvas></div></div>
+        <div class="panel"><h2>↩️ Devoluciones</h2><div class="chartbox"><canvas id="cDev"></canvas></div></div>
+        <div class="panel"><h2>⚠️ Incidentes por severidad</h2><div class="chartbox"><canvas id="cInc"></canvas></div></div>
+        <div class="panel"><h2>🏆 Top 10 más prestados</h2><div class="chartbox"><canvas id="cTop"></canvas></div></div>
+        <div class="panel"><h2>📚 Inventario por estado</h2><div class="chartbox"><canvas id="cInv"></canvas></div></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/vendor/chart.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
+
+    const PAL = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#eab308', '#ec4899', '#64748b', '#0ea5e9'];
+
+    // gate: solo directivo/admin (encargado→mostrador, alumno→credencial)
+    fetch('/api/auth/me')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(me => {
+        if (me.rol === 'directivo' || me.rol === 'admin') cargar();
+        else if (me.rol === 'encargado') location.replace('/mostrador.html');
+        else location.replace('/credencial.html');
+      })
+      .catch(() => { location.href = '/login.html'; });
+
+    async function cargar() {
+      let d;
+      try { const r = await fetch('/api/reportes/resumen'); if (!r.ok) throw 0; d = await r.json(); }
+      catch { $('cargando').textContent = 'No se pudieron cargar los reportes.'; return; }
+
+      // colores del tema para los gráficos
+      const css = getComputedStyle(document.documentElement);
+      Chart.defaults.color = css.getPropertyValue('--text').trim() || '#e2e8f0';
+      Chart.defaults.borderColor = css.getPropertyValue('--border').trim() || '#334155';
+      Chart.defaults.font.size = 13;
+
+      $('cargando').style.display = 'none';
+      $('cont').style.display = '';
+
+      // tarjetas
+      const P = d.prestamos, DV = d.devoluciones, I = d.incidentes;
+      $('stats').innerHTML = [
+        ['num', P.total, 'Préstamos totales', false],
+        ['num', P.activos, 'Activos', false],
+        ['num', P.atrasados, 'Atrasados', true],
+        ['num', I.abiertos, 'Incidentes abiertos', true],
+        ['num', DV.observacion, 'Devol. c/observación', true],
+        ['num', d.personas_activas, 'Personas activas', false],
+      ].map(([_, n, lbl, alarm]) => `<div class="stat ${alarm && n > 0 ? 'alarm' : ''}"><div class="num">${n}</div><div class="lbl">${lbl}</div></div>`).join('');
+
+      const noLeyenda = { plugins: { legend: { display: false } }, maintainAspectRatio: false };
+      const conLeyenda = { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false };
+
+      // préstamos por mes (línea)
+      new Chart($('cMes'), {
+        type: 'line',
+        data: { labels: d.por_mes.map(x => x.mes), datasets: [{ data: d.por_mes.map(x => x.prestamos), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.2)', fill: true, tension: .3 }] },
+        options: { ...noLeyenda, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      });
+      // por tipo (dona)
+      new Chart($('cTipo'), {
+        type: 'doughnut',
+        data: { labels: d.por_tipo.map(x => x.tipo_label), datasets: [{ data: d.por_tipo.map(x => x.prestamos), backgroundColor: PAL }] },
+        options: conLeyenda,
+      });
+      // devoluciones (dona)
+      new Chart($('cDev'), {
+        type: 'doughnut',
+        data: { labels: ['OK', 'Con observación'], datasets: [{ data: [DV.ok, DV.observacion], backgroundColor: ['#22c55e', '#ef4444'] }] },
+        options: conLeyenda,
+      });
+      // incidentes por severidad (barras)
+      new Chart($('cInc'), {
+        type: 'bar',
+        data: { labels: ['Baja', 'Media', 'Alta'], datasets: [{ data: [I.por_severidad.baja, I.por_severidad.media, I.por_severidad.alta], backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'] }] },
+        options: { ...noLeyenda, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      });
+      // top materiales (barras horizontales)
+      new Chart($('cTop'), {
+        type: 'bar',
+        data: { labels: d.top_materiales.map(x => x.material), datasets: [{ data: d.top_materiales.map(x => x.prestamos), backgroundColor: '#3b82f6' }] },
+        options: { ...noLeyenda, indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
+      });
+      // inventario por estado (dona)
+      const inv = d.inventario;
+      new Chart($('cInv'), {
+        type: 'doughnut',
+        data: { labels: ['Disponible', 'Prestado', 'En reparación', 'De baja'], datasets: [{ data: [inv.disponible, inv.prestado, inv.en_reparacion, inv.baja], backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'] }] },
+        options: conLeyenda,
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Un ISBN por línea. Líneas que empiezan con # se ignoran.
+# Reemplazá estos con los ISBNs reales de libros de la biblioteca.
+
+9788437604947
+9789500715386
+9789875660533
+9789504974864

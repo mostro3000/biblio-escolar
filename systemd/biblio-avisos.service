@@ -1,0 +1,17 @@
+[Unit]
+Description=Avisos de vencimiento de biblio por Web Push (notificación al celular)
+After=postgresql.service network-online.target
+Wants=postgresql.service network-online.target
+
+[Service]
+Type=oneshot
+User=biblio
+Group=biblio
+WorkingDirectory=/opt/biblio
+EnvironmentFile=-/opt/biblio/.env
+ExecStart=/opt/biblio/venv/bin/python /opt/biblio/scripts/avisos_vencimiento.py
+# Endurecimiento: solo lee (.env + clave VAPID) y usa red (PostgreSQL + push service).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true

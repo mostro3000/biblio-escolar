@@ -1,0 +1,15 @@
+# Secretos y datos — NUNCA subir
+.env
+.env.local
+*.pem
+/data/
+/backups/
+vapid_private.pem
+
+# Entorno y artefactos de build
+venv/
+__pycache__/
+*.pyc
+*.tar.gz
+*.deb
+.DS_Store
