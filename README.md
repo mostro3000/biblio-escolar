@@ -1,5 +1,8 @@
 # Biblio — sistema de préstamos de biblioteca escolar
 
+[![Licencia: GPL v3](https://img.shields.io/badge/Licencia-GPLv3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/mostro3000/biblio-escolar)](https://github.com/mostro3000/biblio-escolar/releases)
+
 PWA + API para gestionar préstamos y devoluciones con **trazabilidad por ejemplar**
 (quién tuvo la netbook 5, cuándo se prestó tal libro, etc.). Pensado para una escuela.
 
