@@ -13,6 +13,9 @@ PWA + API para gestionar préstamos y devoluciones con **trazabilidad por ejempl
 
 Stack: **FastAPI + PostgreSQL + Apache (proxy) + PWA** (HTML/JS sin framework). Probado en Debian 13.
 
+👉 **Cómo se usa el día a día** (registro, préstamo/devolución, alta de materiales, admin): ver
+[`GUIA_DE_USO.md`](GUIA_DE_USO.md).
+
 ## Instalación
 
 Requisitos: Debian/Ubuntu con acceso a internet (para `apt` y `pip`).
