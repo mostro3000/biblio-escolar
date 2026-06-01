@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="stylesheet" href="/base.css?v=5">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -54,6 +54,17 @@
       <div id="msg" class="msg"></div>
     </section>
 
+    <!-- Cambio de clave obligatorio (primer ingreso con clave = DNI) -->
+    <section id="cambio" style="display:none">
+      <div class="msg show ok">Es tu primer ingreso. Por seguridad, elegí una contraseña nueva.</div>
+      <label for="np1">Nueva contraseña</label>
+      <input id="np1" type="password" autocomplete="new-password" placeholder="mínimo 6 caracteres">
+      <label for="np2">Repetir contraseña</label>
+      <input id="np2" type="password" autocomplete="new-password" placeholder="repetir">
+      <button id="guardarClave" type="button">Guardar y continuar</button>
+      <div id="msgc" class="msg"></div>
+    </section>
+
     <!-- Logueado -->
     <section id="logueado" style="display:none">
       <div class="msg show ok" id="hola"></div>
@@ -71,10 +82,20 @@
     function show(kind, text) { const m = $('msg'); m.textContent = text; m.className = 'msg show ' + kind; }
 
     function verLogueado(data) {
+      // Primer ingreso con clave temporal (= DNI): forzar cambio antes de operar.
+      if (data && data.debe_cambiar_password) { verCambio(); return; }
       $('form').style.display = 'none';
+      $('cambio').style.display = 'none';
       $('logueado').style.display = '';
       const nombre = [data.nombre, data.apellido].filter(Boolean).join(' ') || ('DNI ' + data.dni);
       $('hola').textContent = `Sesión iniciada: ${nombre} (${data.rol}).`;
+    }
+
+    function verCambio() {
+      $('form').style.display = 'none';
+      $('logueado').style.display = 'none';
+      $('cambio').style.display = '';
+      $('np1').focus();
     }
 
     // ¿ya hay sesión?
@@ -96,6 +117,26 @@
         else { const d = await r.json().catch(() => ({})); show('no', d.detail || 'No se pudo iniciar sesión.'); }
       } catch { show('no', 'Error de red. Reintentá.'); }
       finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+    }
+
+    function showc(kind, text) { const m = $('msgc'); m.textContent = text; m.className = 'msg show ' + kind; }
+    $('guardarClave').addEventListener('click', cambiarClave);
+    $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') cambiarClave(); });
+    async function cambiarClave() {
+      const p1 = $('np1').value, p2 = $('np2').value;
+      if (p1.length < 6) { showc('no', 'La contraseña debe tener al menos 6 caracteres.'); return; }
+      if (p1 !== p2) { showc('no', 'Las dos contraseñas no coinciden.'); return; }
+      const btn = $('guardarClave'); btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        const r = await fetch('/api/auth/cambiar-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: p1 }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) { verLogueado(d); }
+        else { showc('no', d.detail || 'No se pudo cambiar la contraseña.'); }
+      } catch { showc('no', 'Error de red. Reintentá.'); }
+      finally { btn.disabled = false; btn.textContent = 'Guardar y continuar'; }
     }
 
     $('salir').addEventListener('click', async () => {

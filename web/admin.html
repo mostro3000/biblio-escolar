@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="stylesheet" href="/base.css?v=5">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -256,7 +256,7 @@
         : (p.estado === 'suspendido'
           ? `<button class="ok" onclick="window._persona(${p.id},'activo',this)">Reactivar</button>`
           : `<button class="danger" onclick="window._persona(${p.id},'suspendido',this)">Suspender</button>`);
-      const esStaff = p.rol === 'encargado' || p.rol === 'admin';
+      const esStaff = p.rol === 'encargado' || p.rol === 'directivo' || p.rol === 'admin';
       const rolCtrl = esSelf
         ? `<span class="meta">rol: ${esc(p.rol)} (no editable)</span>`
         : `<span class="meta">rol:</span> <select style="${SEL}" onchange="window._rol(${p.id}, this.value)">`

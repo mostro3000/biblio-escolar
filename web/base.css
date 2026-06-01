@@ -106,6 +106,8 @@ nav b { color: #fff !important; background: #3b82f6; }   /* ítem activo = pesta
   box-shadow: 0 2px 10px rgba(0,0,0,.35);
 }
 #themeToggle:hover { filter: brightness(1.08); }
+/* Al imprimir (etiquetas QR, cartel, etc.) no mostrar el botón flotante de tema. */
+@media print { #themeToggle { display: none !important; } }
 
 /* ===== Pulido visual (aditivo; adapta al tema, no rompe estilos por página) ===== */
 /* Nunca permitir scroll horizontal / "moverse al costado" en el celular. */

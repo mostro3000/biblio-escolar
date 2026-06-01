@@ -127,12 +127,17 @@ def crear_persona(payload: CrearPersonaIn,
     if db.scalar(select(Persona).where(Persona.dni == payload.dni)):
         raise HTTPException(409, f"Ya existe una persona con DNI {payload.dni}.")
     rol = Rol(payload.rol)
-    es_staff = rol in (Rol.encargado, Rol.admin)
+    es_staff = rol in (Rol.encargado, Rol.directivo, Rol.admin)
     p = Persona(dni=payload.dni, rol=rol,
                 estado=EstadoPersona.activo if es_staff else EstadoPersona.pendiente)
+    if es_staff:
+        # Clave temporal = el propio DNI; el sistema obliga a cambiarla al primer ingreso.
+        p.password_hash = hash_password(payload.dni)
+        p.debe_cambiar_password = True
     db.add(p)
     db.commit()
-    nota = " Ponele una contraseña (🔑)." if es_staff else " Completará sus datos al registrarse."
+    nota = (f" Que entre con DNI y contraseña = {p.dni}; el sistema le pedirá cambiarla."
+            if es_staff else " Completará sus datos al registrarse.")
     return {"id": p.id, "dni": p.dni, "rol": p.rol.value, "estado": p.estado.value,
             "mensaje": f"Persona creada: DNI {p.dni} ({rol.value}).{nota}"}
 
@@ -178,12 +183,17 @@ def cambiar_rol(persona_id: int, payload: CambiarRolIn,
         raise HTTPException(409, "No podés cambiar tu propio rol.")
     nuevo = Rol(payload.rol)
     p.rol = nuevo
-    es_staff = nuevo in (Rol.encargado, Rol.admin)
+    es_staff = nuevo in (Rol.encargado, Rol.directivo, Rol.admin)
     if es_staff and p.estado == EstadoPersona.pendiente:
         p.estado = EstadoPersona.activo
+    nota = ""
+    if es_staff and not p.password_hash:
+        # Pasó a staff y no tenía clave: clave temporal = DNI + cambio obligado.
+        p.password_hash = hash_password(p.dni)
+        p.debe_cambiar_password = True
+        nota = f" — clave inicial = {p.dni} (se la cambia al entrar)"
     db.commit()
     extra = " (activado)" if es_staff and p.estado == EstadoPersona.activo else ""
-    nota = " — falta ponerle contraseña" if es_staff and not p.password_hash else ""
     return {"id": p.id, "rol": p.rol.value, "estado": p.estado.value,
             "mensaje": f"{_nombre(p)} ahora es {nuevo.value}{extra}.{nota}"}
 
@@ -191,13 +201,14 @@ def cambiar_rol(persona_id: int, payload: CambiarRolIn,
 @router.post("/personas/{persona_id}/password")
 def set_password_staff(persona_id: int, payload: SetPasswordIn,
                        db: Session = Depends(get_db), _: Persona = AdminOnly) -> dict:
-    """Setea/cambia la contraseña de un usuario de staff (solo encargado/admin usan clave)."""
+    """Setea/cambia la contraseña de un usuario de staff (encargado/directivo/admin usan clave)."""
     p = db.get(Persona, persona_id)
     if p is None:
         raise HTTPException(404, "Persona no encontrada.")
-    if p.rol not in (Rol.encargado, Rol.admin):
-        raise HTTPException(409, "Solo los usuarios de staff (encargado/admin) usan contraseña. Cambiá el rol primero.")
+    if p.rol not in (Rol.encargado, Rol.directivo, Rol.admin):
+        raise HTTPException(409, "Solo los usuarios de staff (encargado/directivo/admin) usan contraseña. Cambiá el rol primero.")
     p.password_hash = hash_password(payload.password)
+    p.debe_cambiar_password = False   # el admin la fijó explícitamente: ya no es temporal
     db.commit()
     return {"id": p.id, "mensaje": f"Contraseña actualizada para {_nombre(p)}."}
 

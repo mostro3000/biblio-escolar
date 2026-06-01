@@ -7,8 +7,8 @@ from ..config import settings
 from ..db import get_db
 from ..models import Persona, Sesion
 from ..ratelimit import rate_limit
-from ..schemas import LoginIn, MeOut
-from ..security import COOKIE, DURACION, crear_sesion, usuario_actual, verify_password
+from ..schemas import LoginIn, MeOut, SetPasswordIn
+from ..security import COOKIE, DURACION, crear_sesion, hash_password, usuario_actual, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -16,7 +16,8 @@ _login_rl = Depends(rate_limit("login", settings.login_rate_max, settings.login_
 
 
 def _me(persona: Persona) -> MeOut:
-    return MeOut(dni=persona.dni, nombre=persona.nombre, apellido=persona.apellido, rol=persona.rol.value)
+    return MeOut(dni=persona.dni, nombre=persona.nombre, apellido=persona.apellido,
+                 rol=persona.rol.value, debe_cambiar_password=persona.debe_cambiar_password)
 
 
 @router.post("/login", response_model=MeOut)
@@ -51,4 +52,17 @@ def logout(
 
 @router.get("/me", response_model=MeOut)
 def me(persona: Persona = Depends(usuario_actual)) -> MeOut:
+    return _me(persona)
+
+
+@router.post("/cambiar-password", response_model=MeOut)
+def cambiar_password(payload: SetPasswordIn, persona: Persona = Depends(usuario_actual),
+                     db: Session = Depends(get_db)) -> MeOut:
+    """El propio usuario logueado cambia su contraseña (usado en el cambio obligado del
+    primer ingreso, cuando la clave temporal es el DNI). No permite dejar el DNI como clave."""
+    if payload.password == persona.dni:
+        raise HTTPException(409, "Elegí una contraseña distinta a tu DNI.")
+    persona.password_hash = hash_password(payload.password)
+    persona.debe_cambiar_password = False
+    db.commit()
     return _me(persona)

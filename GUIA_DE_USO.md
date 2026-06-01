@@ -110,6 +110,19 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 - **Incidentes**: marcar resueltos. **Materiales fuera de servicio**: reactivar.
 - **Reportes** (directivo/admin, pestaña aparte): préstamos, atrasos, más prestados, por tipo, por mes, etc.
 
+### Alta de staff (encargado / directivo / admin) — primer ingreso
+
+Cuando el admin **crea** un usuario de staff (o le **cambia el rol** a staff) sin ponerle clave,
+el sistema le asigna como **contraseña inicial su propio DNI**. En su primer ingreso:
+
+1. Entra en **Ingresar (personal)** con **DNI** y, como contraseña, **el mismo DNI**.
+2. El sistema lo lleva a una pantalla de **cambio obligatorio** y no lo deja operar hasta elegir
+   una contraseña nueva (distinta del DNI).
+
+> Recomendación de seguridad: como el DNI no es secreto, conviene **dar de alta al encargado y que
+> cambie la clave en el momento** (o ponerle vos una clave con 🔑 y comunicársela). Si el admin fija
+> la clave con 🔑, no se pide el cambio obligatorio.
+
 ---
 
 ## Operación y mantenimiento (consola del servidor)

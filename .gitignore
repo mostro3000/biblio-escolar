@@ -5,6 +5,13 @@
 /data/
 /backups/
 vapid_private.pem
+# Datos personales / padrones (no se distribuyen)
+lista.txt
+pof.txt
+docentes*.txt
+# QR con el dominio real de una escuela (se generan por instalación)
+web/qr.png
+web/qr-cartel.png
 
 # Entorno y artefactos de build
 venv/

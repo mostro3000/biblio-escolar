@@ -115,6 +115,7 @@ class MeOut(BaseModel):
     nombre: str | None
     apellido: str | None
     rol: str
+    debe_cambiar_password: bool = False   # clave temporal (= DNI) → forzar cambio
 
 
 class CrearLibroIn(BaseModel):

@@ -33,6 +33,11 @@
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (me) {
       if (!me) return;
+      // Primer ingreso con clave temporal (= DNI): no dejar operar hasta cambiarla.
+      if (me.debe_cambiar_password && location.pathname.indexOf('/login.html') === -1) {
+        location.replace('/login.html');
+        return;
+      }
       try { localStorage.setItem('biblio_rol', me.rol); } catch (e) {}
       apply(me.rol);
     })

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="stylesheet" href="/base.css?v=4">
+  <link rel="stylesheet" href="/base.css?v=5">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,8 +21,8 @@
     body { visibility: hidden; } body.ready { visibility: visible; }   /* se revela tras el chequeo de sesión */
     .card { width: 100%; max-width: 23rem; background: var(--surface); border-radius: 1rem; padding: 2rem 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,.35); text-align: center; }
     .logo { width: 152px; height: 152px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; margin: 0 auto 1.1rem; box-shadow: 0 4px 16px rgba(0,0,0,.4); background: #fff; cursor: pointer; }
-    .ver { display: none; font-size: .72rem; color: #64748b; margin: 1rem 0 0; }
     .logo img { width: 100%; height: 100%; object-fit: cover; }   /* el archivo ya viene recortado al aro azul */
+    .ver { display: none; font-size: .72rem; color: #64748b; margin: 1rem 0 0; }
     h1 { font-size: 1.2rem; margin: 0 0 .2rem; }
     .sub { color: var(--muted); font-size: .82rem; margin: 0 0 1.6rem; line-height: 1.4; }
     a.btn { display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: .7rem; padding: .9rem; font-size: 1rem; font-weight: 600; border: none; border-radius: .7rem; text-decoration: none; cursor: pointer; }
@@ -35,7 +35,7 @@
 </head>
 <body>
   <main class="card">
-    <div class="logo" id="logo" title="Biblio v@@VERSION@@ — creado por mt"><img src="/logo.jpg" alt="@@ESCUELA@@"></div>
+    <div class="logo" id="logo"><img src="/logo.jpg" alt="@@ESCUELA@@"></div>
     <h1>📚 Biblioteca</h1>
     <p class="sub">@@ESCUELA@@<br>Sistema de préstamos de la biblioteca</p>
 
@@ -43,7 +43,7 @@
     <a class="btn sec" href="/onboarding.html">📷 Registrarme</a>
     <a class="btn sec" href="/login.html">👤 Ingresar (personal)</a>
 
-    <p class="ver" id="ver">Biblio v@@VERSION@@ — creado por mt</p>
+    <p class="ver" id="ver">Biblio — creado por mt</p>
     <p class="foot"><a href="/status.html">estado del sistema</a></p>
   </main>
 
@@ -58,16 +58,21 @@
         .then(function (me) {
           clearTimeout(t);
           if (!me) { reveal(); return; }                                  // sin sesión → portada
+          if (me.debe_cambiar_password) { location.replace('/login.html'); return; }  // primer ingreso: cambiar clave
           if (me.rol === 'alumno' || me.rol === 'docente') location.replace('/credencial.html');
-          else if (me.rol === 'encargado' || me.rol === 'admin') location.replace('/mostrador.html');
+          else if (me.rol === 'encargado' || me.rol === 'directivo' || me.rol === 'admin') location.replace('/mostrador.html');
           else reveal();
         })
         .catch(function () { clearTimeout(t); reveal(); });
     })();
 
-    // Tocar (o apuntar) el logo muestra la versión y el crédito.
+    // Crédito + versión al tocar (o apuntar) el logo. La versión sale de /api/health (la del momento).
     (function () {
       var lo = document.getElementById('logo'), v = document.getElementById('ver');
+      function set(ver) { var t = 'Biblio v' + ver + ' — creado por mt'; if (v) v.textContent = t; if (lo) lo.title = t; }
+      set('@@VERSION@@');
+      fetch('/api/health').then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.version) set(d.version); }).catch(function () {});
       if (lo && v) lo.addEventListener('click', function () {
         v.style.display = (v.style.display === 'block') ? 'none' : 'block';
       });

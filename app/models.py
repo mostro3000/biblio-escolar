@@ -98,6 +98,8 @@ class Persona(Base):
     telefono: Mapped[str | None] = mapped_column(String(40))
     # Solo para staff (encargado/admin): login por DNI + contraseña. Alumnos usan QR.
     password_hash: Mapped[str | None] = mapped_column(String(255))
+    # True cuando la clave es temporal (= DNI, recién creada): obliga a cambiarla al entrar.
+    debe_cambiar_password: Mapped[bool] = mapped_column(default=False, server_default="false")
     # Token opaco y estable del QR personal (se genera al activarse en el onboarding).
     qr_token: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
     # Embedding facial (128 floats). Solo la selfie, nunca la foto. Nullable hasta el onboarding.
