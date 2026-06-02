@@ -19,6 +19,17 @@ Stack: **FastAPI + PostgreSQL + Apache (proxy) + PWA** (HTML/JS sin framework). 
 👉 **Cómo se usa el día a día** (registro, préstamo/devolución, alta de materiales, admin): ver
 [`GUIA_DE_USO.md`](GUIA_DE_USO.md).
 
+## Capturas
+
+| | | |
+|:---:|:---:|:---:|
+| ![Portada](docs/screenshots/01-portada.png) | ![Credencial](docs/screenshots/02-credencial.png) | ![Mostrador](docs/screenshots/03-mostrador.png) |
+| Portada | Credencial (QR rotativo) | Mostrador — préstamo |
+| ![Catálogo](docs/screenshots/04-catalogo.png) | ![Alta de libros](docs/screenshots/06-alta-libros.png) | ![Alta de tecnología](docs/screenshots/07-alta-tecnologia.png) |
+| Catálogo | Alta de libros (ISBN) | Alta de tecnología (QR) |
+| ![Ficha](docs/screenshots/05-ficha.png) | ![Disponibilidad](docs/screenshots/10-disponibilidad.png) | ![Admin](docs/screenshots/09-admin.png) |
+| Ficha del ejemplar | Disponibilidad (alumno) | Panel de administración |
+
 ## Instalación
 
 Requisitos: Debian/Ubuntu con acceso a internet (para `apt` y `pip`).
