@@ -196,6 +196,26 @@ class Incidente(Base):
     creado_por_id: Mapped[int | None] = mapped_column(ForeignKey("persona.id"))
 
 
+class IsbnCache(Base):
+    """Caché de lookups de ISBN online (Open Library / Google Books).
+
+    Evita re-consultar afuera el mismo ISBN (menos 429, funciona offline). Guarda solo
+    lookups EXITOSOS. Es independiente del catálogo (`Titulo`): un ISBN puede estar acá
+    aunque nunca se haya dado de alta como libro.
+    """
+
+    __tablename__ = "isbn_cache"
+
+    isbn: Mapped[str] = mapped_column(String(20), primary_key=True)  # ISBN normalizado
+    titulo: Mapped[str | None] = mapped_column(String(300))
+    autor: Mapped[str | None] = mapped_column(String(200))
+    editorial: Mapped[str | None] = mapped_column(String(160))
+    anio: Mapped[int | None] = mapped_column(Integer)
+    cover_url: Mapped[str | None] = mapped_column(Text)
+    fuente: Mapped[str | None] = mapped_column(String(20))  # openlibrary | google
+    creado_at: Mapped[datetime] = _creado_at()
+
+
 class PushSubscription(Base):
     """Suscripción Web Push de un dispositivo (para avisos de vencimiento al celular).
 

@@ -2,7 +2,7 @@
 // Estrategia network-first para estáticos del mismo origen → SIEMPRE fresco online
 // (sin staleness), y si no hay red sirve la última copia cacheada. La API (/api/)
 // no se toca (siempre va a la red); los POST tampoco se cachean.
-const CACHE = 'biblio-shell-v17';
+const CACHE = 'biblio-shell-v18';
 
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil((async () => {

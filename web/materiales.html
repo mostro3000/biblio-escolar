@@ -187,7 +187,8 @@
           const cover = $('cover');
           if (d.cover_url) { cover.src = d.cover_url; cover.style.display = ''; } else { cover.style.display = 'none'; }
           coverUrlOnline = d.cover_url || null; coverDataUrl = null;
-          $('fuente').textContent = local ? 'ya en tu catálogo' : 'fuente: ' + d.fuente;
+          const FUENTE_TXT = { catalogo: 'ya en tu catálogo', cache: 'de la caché local', openlibrary: 'fuente: Open Library', google: 'fuente: Google Books' };
+          $('fuente').textContent = FUENTE_TXT[d.fuente] || ('fuente: ' + d.fuente);
           // Dejar disponible reescanear la portada (p.ej. si quedó mal recortada).
           $('tapaBtn').textContent = '📷 Reescanear';
           $('tapaBtn').style.display = '';

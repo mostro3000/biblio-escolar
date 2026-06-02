@@ -78,11 +78,15 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 
 ### Libros con ISBN — `Libros`
 1. **Escanear el código de barras** (ISBN) de la contratapa, o tipearlo.
-2. El sistema busca los datos online (título/autor/tapa). Revisás y ponés cuántas **copias**.
+2. El sistema busca los datos (título/autor/tapa). Revisás y ponés cuántas **copias**.
 3. **Guardar**. Si el ISBN ya existía, suma copias (numeradas 1, 2, 3…).
    - **No se imprime QR**: el libro se identifica por su ISBN + el número de copia escrito a mano.
    - Si el ISBN no aparece online, podés **sacarle una foto a la tapa** y la IA lee título y autor
      (requiere configurar `ANTHROPIC_API_KEY`; si no, lo cargás a mano).
+   - **Búsqueda en 3 capas** (de la más rápida a la más cara): tu catálogo → caché local de
+     lookups → internet (Open Library / Google Books). Cada ISBN consultado online (con su tapa)
+     queda en la **caché**, así no se vuelve a pedir afuera: más rápido, sin error de cuota (429)
+     y funciona aunque se caiga internet. La pantalla indica la fuente de los datos.
 
 ### Libros viejos SIN ISBN — `Libros` → "📕 El libro no tiene ISBN"
 1. Sacás foto de la tapa (la IA lee el título) o cargás los datos a mano.

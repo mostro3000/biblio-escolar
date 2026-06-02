@@ -18,6 +18,7 @@ from ..models import (
     TIPO_LABEL,
     EstadoMaterial,
     Incidente,
+    IsbnCache,
     Material,
     Persona,
     Prestamo,
@@ -84,18 +85,38 @@ def _nombre(p: Persona | None) -> str | None:
 
 @router.get("/isbn/{isbn}", response_model=LibroMetadata)
 def lookup_isbn(isbn: str, db: Session = Depends(get_db), _: Persona = ReadDep) -> LibroMetadata:
-    """Busca metadata por ISBN. PRIMERO en el catálogo LOCAL (así reconoce libros ya cargados,
-    aunque todas sus copias estén de baja, y no hay que volver a sacar la foto); si no está,
-    consulta las APIs online (endpoint sync -> corre en threadpool)."""
+    """Busca metadata por ISBN en 3 capas, de la más barata a la más cara:
+      1) **catálogo LOCAL** (`Titulo`): reconoce libros ya cargados (aunque sus copias estén de baja).
+      2) **caché de lookups** (`IsbnCache`): ISBN ya consultado online antes, aunque no se haya cargado.
+      3) **APIs online** (Open Library / Google Books); si encuentra, guarda en la caché.
+    Así un mismo ISBN no se vuelve a pedir afuera (menos 429, anda sin internet)."""
     norm = normalizar_isbn(isbn)
     candidatos = {norm}
     if isbn_valido(norm):
         candidatos.add(_a_isbn13(norm))   # ISBN-10 escaneado vs ISBN-13 guardado
+
+    # 1) catálogo local
     t = db.scalar(select(Titulo).where(Titulo.isbn.in_(candidatos)))
     if t:
         return LibroMetadata(isbn=t.isbn, encontrado=True, titulo=t.titulo, autor=t.autor,
                              editorial=t.editorial, anio=t.anio, cover_url=t.cover_url, fuente="catalogo")
-    return LibroMetadata(**buscar_libro(isbn))
+
+    # 2) caché de lookups previos
+    c = db.scalar(select(IsbnCache).where(IsbnCache.isbn.in_(candidatos)))
+    if c:
+        return LibroMetadata(isbn=c.isbn, encontrado=True, titulo=c.titulo, autor=c.autor,
+                             editorial=c.editorial, anio=c.anio, cover_url=c.cover_url, fuente="cache")
+
+    # 3) online; si hay match, cachear para la próxima
+    res = buscar_libro(isbn)
+    if res.get("encontrado"):
+        cisbn = res["isbn"]
+        if not db.get(IsbnCache, cisbn):
+            db.add(IsbnCache(isbn=cisbn, titulo=res.get("titulo"), autor=res.get("autor"),
+                             editorial=res.get("editorial"), anio=res.get("anio"),
+                             cover_url=res.get("cover_url"), fuente=res.get("fuente")))
+            db.commit()
+    return LibroMetadata(**res)
 
 
 # Tipos de imagen que la API de Claude acepta como base64.
