@@ -122,6 +122,7 @@
       <div id="historial"></div>
 
       <h2>⚠️ Incidentes</h2>
+      <button id="nuevoInc" type="button" class="act warn" style="margin-bottom:.6rem">⚠️ Marcar incidente</button>
       <div id="incidentes"></div>
 
       <button id="otro" type="button" class="sec">Buscar otro material</button>
@@ -363,6 +364,17 @@
       if (!r.ok) { show('no', d.detail || 'No se pudo resolver.'); return; }
       show('info', d.mensaje); await recargar();
     };
+    $('nuevoInc').addEventListener('click', async () => {
+      const desc = prompt('¿Qué pasó? (describí el incidente)');
+      if (desc === null) return;
+      if (!desc.trim()) { show('no', 'Describí el incidente.'); return; }
+      let sev = (prompt('Severidad: baja / media / alta', 'media') || 'media').trim().toLowerCase();
+      if (!['baja', 'media', 'alta'].includes(sev)) sev = 'media';
+      const r = await fetch(`/api/materiales/${fichaId}/incidente`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descripcion: desc.trim(), severidad: sev }) });
+      if (al401(r)) return; const d = await r.json();
+      if (!r.ok) { show('no', d.detail || 'No se pudo registrar el incidente.'); return; }
+      show('info', d.mensaje); await recargar();
+    });
 
     $('otro').addEventListener('click', () => {
       $('fichaSec').classList.add('hidden'); $('buscarSec').classList.remove('hidden');

@@ -274,6 +274,8 @@ class SetPasswordIn(BaseModel):
 class CrearPersonaIn(BaseModel):
     dni: str
     rol: str = "alumno"
+    nombre: str | None = None       # opcional: útil para staff (no hace onboarding)
+    apellido: str | None = None
 
     @field_validator("dni")
     @classmethod
@@ -286,3 +288,20 @@ class CrearPersonaIn(BaseModel):
         if v not in ("alumno", "docente", "encargado", "directivo", "admin"):
             raise ValueError("rol inválido")
         return v
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _limpiar(cls, v: str | None) -> str | None:
+        v = (v or "").strip()
+        return v or None
+
+
+class EditarNombreIn(BaseModel):
+    nombre: str | None = None
+    apellido: str | None = None
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _limpiar(cls, v: str | None) -> str | None:
+        v = (v or "").strip()
+        return v or None

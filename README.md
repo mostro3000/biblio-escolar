@@ -26,8 +26,8 @@ Requisitos: Debian/Ubuntu con acceso a internet (para `apt` y `pip`).
 ### Opción A — instalador (tarball)
 
 ```bash
-tar xzf biblio-1.0.1.tar.gz
-cd biblio-1.0.1
+tar xzf biblio-1.0.2.tar.gz
+cd biblio-1.0.2
 sudo ./install.sh --nombre "Esc. Téc. N°5" --logo /ruta/al/logo.png --domain biblio.midominio.edu.ar --admin-dni 12345678
 ```
 
@@ -36,7 +36,7 @@ Todas las opciones son opcionales (lo que falte se pregunta o se hace después).
 ### Opción B — paquete .deb
 
 ```bash
-sudo apt install ./biblio_1.0.1_all.deb     # instala archivos y dependencias del sistema
+sudo apt install ./biblio_1.0.2_all.deb     # instala archivos y dependencias del sistema
 sudo biblio-setup --nombre "Esc. Téc. N°5" --domain biblio.midominio.edu.ar
 ```
 

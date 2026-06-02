@@ -22,6 +22,7 @@ from ..models import (
     Persona,
     Prestamo,
     Rol,
+    Severidad,
     TipoCodigo,
     TipoMaterial,
     Titulo,
@@ -505,3 +506,30 @@ def ficha(material_id: int, db: Session = Depends(get_db), _: Persona = ReadDep)
             "incidentes_abiertos": sum(1 for i in incidentes if not i["resuelto"]),
         },
     }
+
+
+class IncidenteIn(BaseModel):
+    descripcion: str
+    severidad: str = "media"   # baja | media | alta
+
+
+@router.post("/{material_id}/incidente")
+def crear_incidente(material_id: int, payload: IncidenteIn, db: Session = Depends(get_db),
+                    encargado: Persona = StaffDep) -> dict:
+    """Registra un incidente sobre un ejemplar en cualquier momento (no solo al devolver).
+    P.ej. una netbook que se rompió guardada. No cambia el estado del material (eso se hace
+    aparte con En reparación / Dar de baja)."""
+    m = db.get(Material, material_id)
+    if m is None:
+        raise HTTPException(404, "Material inexistente.")
+    desc = (payload.descripcion or "").strip()
+    if not desc:
+        raise HTTPException(422, "Describí el incidente.")
+    try:
+        sev = Severidad(payload.severidad)
+    except ValueError:
+        sev = Severidad.media
+    db.add(Incidente(material_id=m.id, descripcion=desc, severidad=sev,
+                     creado_por_id=encargado.id))
+    db.commit()
+    return {"ok": True, "mensaje": f"Incidente registrado para {_describir(db, m)}."}

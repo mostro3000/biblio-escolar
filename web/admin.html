@@ -100,16 +100,23 @@
         </select>
         <button id="verListaBtn" type="button" class="sec">Ver lista</button>
       </div>
-      <div class="searchrow" style="margin-top:.5rem">
-        <input type="text" id="nuevoDni" placeholder="Crear — DNI nuevo" inputmode="numeric" autocomplete="off">
-        <select id="nuevoRol" style="flex:0 0 auto;width:auto">
-          <option value="alumno">alumno</option>
-          <option value="docente">docente</option>
-          <option value="encargado">encargado</option>
-          <option value="directivo">directivo</option>
-          <option value="admin">admin</option>
-        </select>
-        <button id="crearBtn" type="button" class="ok">Crear</button>
+      <div style="margin-top:.5rem">
+        <input type="text" id="nuevoDni" placeholder="Crear — DNI nuevo" inputmode="numeric" autocomplete="off" style="width:100%">
+        <div class="searchrow" style="margin-top:.5rem">
+          <input type="text" id="nuevoApellido" placeholder="Apellido (opcional)" autocomplete="off" style="flex:1">
+          <input type="text" id="nuevoNombre" placeholder="Nombre (opcional)" autocomplete="off" style="flex:1">
+        </div>
+        <div class="searchrow" style="margin-top:.5rem">
+          <select id="nuevoRol" style="flex:1;width:auto">
+            <option value="alumno">alumno</option>
+            <option value="docente">docente</option>
+            <option value="encargado">encargado</option>
+            <option value="directivo">directivo</option>
+            <option value="admin">admin</option>
+          </select>
+          <button id="crearBtn" type="button" class="ok">Crear</button>
+        </div>
+        <p style="color:var(--muted);font-size:.74rem;margin:.4rem 0 0">Nombre/apellido es opcional para alumnos (lo completan al registrarse); conviene cargarlo para el staff.</p>
       </div>
       <div id="pTot" style="color:var(--muted);font-size:.8rem;margin-top:.7rem"></div>
       <div id="personas"></div>
@@ -227,12 +234,14 @@
     async function crearPersona() {
       const dni = $('nuevoDni').value.trim();
       const rol = $('nuevoRol').value;
+      const apellido = $('nuevoApellido').value.trim() || null;
+      const nombre = $('nuevoNombre').value.trim() || null;
       if (!dni) { flash('no', 'Ingresá un DNI.'); return; }
-      const r = await fetch('/api/admin/personas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dni, rol }) });
+      const r = await fetch('/api/admin/personas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dni, rol, nombre, apellido }) });
       if (al401(r)) return; const d = await r.json();
       if (!r.ok) { flash('no', (d.detail && (d.detail[0]?.msg || d.detail)) || 'No se pudo crear.'); return; }
       flash('ok', d.mensaje);
-      $('nuevoDni').value = '';
+      $('nuevoDni').value = ''; $('nuevoApellido').value = ''; $('nuevoNombre').value = '';
       $('q').value = d.dni; $('fRol').value = ''; $('fEstado').value = '';   // mostrarla sin filtros
       cargarPersonas(true); cargarResumen();
     }
@@ -263,13 +272,15 @@
           + ROLES.map(r => `<option value="${r}"${r === p.rol ? ' selected' : ''}>${r}</option>`).join('')
           + `</select>`
           + (esStaff ? ` <button class="sec" onclick="window._clave(${p.id},'${p.dni}')">🔑 Clave</button>` : '');
+      const arg = (s) => encodeURIComponent(s || '');
+      const nomBtn = `<button class="sec" onclick="window._editarNombre(${p.id},'${arg(p.apellido)}','${arg(p.nombre)}')">✏️ Nombre</button>`;
       return `<div class="item">
         <div class="h">
           <div><div class="nm">${nm} <span class="pill p-${p.estado}">${p.estado}</span></div>
             <div class="meta">${esc(p.rol)} · DNI ${esc(p.dni)}</div></div>
           <div class="acts">${accion}</div>
         </div>
-        <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">${rolCtrl}</div>
+        <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">${rolCtrl}${nomBtn}</div>
       </div>`;
     }
 
@@ -301,6 +312,16 @@
       const r = await fetch(`/api/admin/personas/${id}/password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
       if (al401(r)) return; const d = await r.json();
       flash(r.ok ? 'ok' : 'no', d.mensaje || d.detail || 'No se pudo.');
+    };
+    window._editarNombre = async (id, apeEnc, nomEnc) => {
+      const ape = prompt('Apellido:', decodeURIComponent(apeEnc));
+      if (ape === null) return;                       // canceló
+      const nom = prompt('Nombre:', decodeURIComponent(nomEnc));
+      if (nom === null) return;
+      const r = await fetch(`/api/admin/personas/${id}/nombre`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apellido: ape, nombre: nom }) });
+      if (al401(r)) return; const d = await r.json();
+      flash(r.ok ? 'ok' : 'no', d.mensaje || d.detail || 'No se pudo.');
+      cargarPersonas(true);
     };
   </script>
 </body>

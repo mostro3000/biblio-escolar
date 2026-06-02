@@ -64,8 +64,13 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 ### Ficha de un material — `Ficha`
 - Escaneás o tipeás el código (ISBN o interno) y ves **toda la historia del ejemplar**: estado,
   quién lo tiene ahora, historial de préstamos (quién, cuándo, qué encargado), e incidentes.
-- Responde "¿quién tuvo la netbook 5?". Desde acá también se cambia el estado (en reparación / baja)
-  y se imprime el QR de esa copia.
+- Responde "¿quién tuvo la netbook 5?". Desde acá también:
+  - **Cambiar el estado**: ✓ Disponible · 🔧 En reparación · ✕ Dar de baja (vale para libros y tech;
+    bloqueado si está prestado).
+  - **⚠️ Marcar incidente**: registrar un problema en cualquier momento (p.ej. una netbook que se rompió
+    guardada), con descripción y severidad. No cambia el estado (eso se hace aparte). También se crea un
+    incidente automáticamente al devolver "con observación".
+  - **Imprimir el QR** de esa copia.
 
 ---
 
@@ -105,8 +110,10 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 ## Panel de administración — `Admin` (solo admin)
 
 - **Zona gris**: registros que quedaron "en revisión" → **Aprobar / Rechazar**.
-- **Personas**: listar/buscar, **crear** (DNI + rol), **suspender/reactivar** (suspender corta la sesión
-  al instante), **cambiar rol** (p.ej. hacer encargada a la bibliotecaria) y **poner/cambiar contraseña** de staff.
+- **Personas**: listar/buscar, **crear** (DNI + rol, y opcionalmente apellido/nombre — útil para staff),
+  **editar nombre/apellido** de alguien ya cargado (botón ✏️ Nombre), **suspender/reactivar** (suspender
+  corta la sesión al instante), **cambiar rol** (p.ej. hacer encargada a la bibliotecaria) y
+  **poner/cambiar contraseña** de staff.
 - **Incidentes**: marcar resueltos. **Materiales fuera de servicio**: reactivar.
 - **Reportes** (directivo/admin, pestaña aparte): préstamos, atrasos, más prestados, por tipo, por mes, etc.
 

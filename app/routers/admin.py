@@ -29,6 +29,7 @@ from ..schemas import (
     CambiarEstadoPersonaIn,
     CambiarRolIn,
     CrearPersonaIn,
+    EditarNombreIn,
     ResolverIncidenteIn,
     SetPasswordIn,
 )
@@ -129,6 +130,7 @@ def crear_persona(payload: CrearPersonaIn,
     rol = Rol(payload.rol)
     es_staff = rol in (Rol.encargado, Rol.directivo, Rol.admin)
     p = Persona(dni=payload.dni, rol=rol,
+                nombre=payload.nombre, apellido=payload.apellido,
                 estado=EstadoPersona.activo if es_staff else EstadoPersona.pendiente)
     if es_staff:
         # Clave temporal = el propio DNI; el sistema obliga a cambiarla al primer ingreso.
@@ -196,6 +198,21 @@ def cambiar_rol(persona_id: int, payload: CambiarRolIn,
     extra = " (activado)" if es_staff and p.estado == EstadoPersona.activo else ""
     return {"id": p.id, "rol": p.rol.value, "estado": p.estado.value,
             "mensaje": f"{_nombre(p)} ahora es {nuevo.value}{extra}.{nota}"}
+
+
+@router.post("/personas/{persona_id}/nombre")
+def editar_nombre(persona_id: int, payload: EditarNombreIn,
+                  db: Session = Depends(get_db), _: Persona = AdminOnly) -> dict:
+    """Edita nombre y apellido de una persona (p.ej. cargar los de un staff a mano,
+    o corregir/completar los de alguien ya cargado). Vacío deja el campo en blanco."""
+    p = db.get(Persona, persona_id)
+    if p is None:
+        raise HTTPException(404, "Persona no encontrada.")
+    p.nombre = payload.nombre
+    p.apellido = payload.apellido
+    db.commit()
+    return {"id": p.id, "nombre": p.nombre, "apellido": p.apellido,
+            "mensaje": f"Datos actualizados: {_nombre(p)} (DNI {p.dni})."}
 
 
 @router.post("/personas/{persona_id}/password")
