@@ -211,7 +211,7 @@ class CrearTechIn(BaseModel):
     @field_validator("tipo")
     @classmethod
     def _t(cls, v: str) -> str:
-        if v not in ("netbook", "adaptador", "raton", "raspberry", "mapa", "otro"):
+        if v not in ("netbook", "cargador_netbook", "adaptador", "raton", "raspberry", "mapa", "otro"):
             raise ValueError("tipo inválido (los libros se cargan por ISBN)")
         return v
 

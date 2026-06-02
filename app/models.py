@@ -40,6 +40,7 @@ class EstadoPersona(str, enum.Enum):
 class TipoMaterial(str, enum.Enum):
     libro = "libro"
     netbook = "netbook"
+    cargador_netbook = "cargador_netbook"
     adaptador = "adaptador"
     raton = "raton"
     raspberry = "raspberry"
@@ -49,8 +50,9 @@ class TipoMaterial(str, enum.Enum):
 
 # Etiqueta linda para mostrar (el valor del enum es ASCII/corto; acá el nombre real).
 TIPO_LABEL = {
-    "libro": "libro", "netbook": "netbook", "adaptador": "adaptador",
-    "raton": "ratón", "raspberry": "Raspberry Pi 400", "mapa": "mapa", "otro": "otro",
+    "libro": "libro", "netbook": "netbook", "cargador_netbook": "cargador de netbook",
+    "adaptador": "adaptador", "raton": "ratón", "raspberry": "Raspberry Pi 400",
+    "mapa": "mapa", "otro": "otro",
 }
 
 

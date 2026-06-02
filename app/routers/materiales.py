@@ -32,8 +32,8 @@ from ..schemas import CrearLibroIn, CrearLibroOut, CrearLibroQrIn, CrearTechIn, 
 from ..security import requiere_rol, usuario_actual
 
 # Prefijo por defecto del código interno según el tipo (editable en el alta).
-PREFIJO_TIPO = {"netbook": "NB", "adaptador": "AD", "raton": "RT", "raspberry": "RPI",
-                "mapa": "MP", "otro": "OT"}
+PREFIJO_TIPO = {"netbook": "NB", "cargador_netbook": "CN", "adaptador": "AD", "raton": "RT",
+                "raspberry": "RPI", "mapa": "MP", "otro": "OT"}
 # Prefijo por defecto para libros viejos sin ISBN (QR interno propio).
 PREFIJO_LIBRO = "LIB"
 

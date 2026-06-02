@@ -71,6 +71,7 @@
       <label for="tipo">Tipo</label>
       <select id="tipo">
         <option value="netbook">Netbook</option>
+        <option value="cargador_netbook">Cargador de netbook</option>
         <option value="raspberry">Raspberry Pi 400</option>
         <option value="raton">Ratón</option>
         <option value="adaptador">Adaptador</option>
@@ -111,7 +112,7 @@
     fetch('/api/auth/me').then(r => { if (!r.ok) location.href = '/login.html'; });
     $('salir').addEventListener('click', async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/'; });
 
-    const PREF = { netbook: 'NB', raspberry: 'RPI', raton: 'RT', adaptador: 'AD', mapa: 'MP', otro: 'OT' };
+    const PREF = { netbook: 'NB', cargador_netbook: 'CN', raspberry: 'RPI', raton: 'RT', adaptador: 'AD', mapa: 'MP', otro: 'OT' };
     // al cambiar el tipo, sugerir prefijo (solo si el usuario no lo tocó a algo propio)
     let prefijoAuto = true;
     $('prefijo').addEventListener('input', () => { prefijoAuto = false; actualizarEjemplo(); });

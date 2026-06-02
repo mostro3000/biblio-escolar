@@ -33,6 +33,7 @@ Staff = Depends(requiere_rol(Rol.encargado, Rol.admin, Rol.directivo))
 DIAS_PRESTAMO = {
     TipoMaterial.libro: {"docente": 14, "_": 7},
     TipoMaterial.netbook: {"_": 0},
+    TipoMaterial.cargador_netbook: {"_": 0},
     TipoMaterial.adaptador: {"_": 0},
     TipoMaterial.raton: {"_": 0},
     TipoMaterial.raspberry: {"_": 0},

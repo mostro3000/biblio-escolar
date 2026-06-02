@@ -89,6 +89,7 @@
     <select id="tipoSel" style="display:none">
       <option value="">Todos los tipos</option>
       <option value="netbook">Netbooks</option>
+      <option value="cargador_netbook">Cargadores de netbook</option>
       <option value="raspberry">Raspberry Pi 400</option>
       <option value="raton">Ratones</option>
       <option value="adaptador">Adaptadores</option>
@@ -145,17 +146,24 @@
     }
 
     function renderLibros(items) {
-      $('reprintBar').style.display = 'none';
+      // ¿hay libros con QR propio (sin ISBN)? → mostrar la barra para reimprimir varios juntos
+      const conQr = items.filter(t => !t.isbn && t.codigo);
+      $('reprintBar').style.display = conQr.length ? 'flex' : 'none';
+      if (conQr.length) $('reprintBtn').textContent = '🖨️ Reimprimir QR (0)';
       if (!items.length) { $('lista').innerHTML = '<p class="vacio">No hay libros que coincidan.</p>'; return; }
-      $('lista').innerHTML = items.map(t => `
+      $('lista').innerHTML = items.map(t => {
+        const esQr = !t.isbn && t.codigo;
+        return `
         <div class="item">
+          ${esQr ? `<input type="checkbox" class="chk" value="${t.titulo_id}" onchange="window._upd()">` : ''}
           <div class="main" onclick="location.href='/ficha.html?codigo=${encodeURIComponent(t.codigo || t.isbn || '')}'">
             <div class="nm">${esc(t.titulo)}</div>
             <div class="meta">${esc(t.autor || 'autor desconocido')}${t.isbn ? ' · ISBN ' + esc(t.isbn) : (t.codigo ? ' · ' + esc(t.codigo) : '')}</div>
           </div>
           <div class="cnt">${t.disponibles}/${t.total} disp.</div>
-          ${(!t.isbn && t.codigo) ? `<button class="qrbtn" type="button" title="Reimprimir etiquetas QR" onclick="window._reprintLibro(${t.titulo_id})">🖨️</button>` : ''}
-        </div>`).join('');
+          ${esQr ? `<button class="qrbtn" type="button" title="Reimprimir etiquetas QR de este libro" onclick="window._reprintLibro(${t.titulo_id})">🖨️</button>` : ''}
+        </div>`; }).join('');
+      window._upd();
     }
 
     function renderTech(items) {
@@ -176,7 +184,8 @@
 
     window._upd = () => {
       const n = document.querySelectorAll('.chk:checked').length;
-      const b = $('reprintBtn'); b.disabled = n === 0; b.textContent = `🖨️ Reimprimir etiquetas (${n})`;
+      const b = $('reprintBtn'); b.disabled = n === 0;
+      b.textContent = (clase === 'libros' ? `🖨️ Reimprimir QR (${n})` : `🖨️ Reimprimir etiquetas (${n})`);
     };
     $('selAll').addEventListener('click', () => {
       const all = document.querySelectorAll('.chk');
@@ -185,24 +194,46 @@
       window._upd();
     });
 
-    $('reprintBtn').addEventListener('click', () => {
+    // helper: una etiqueta QR (código + dos líneas de texto)
+    function addLabel(labels, codigo, l1, l2) {
+      const div = document.createElement('div');
+      div.className = 'label';
+      div.innerHTML = `<div class="qr"></div>
+        <div class="lc">${esc(codigo)}</div>
+        <div class="lt">${esc(l1 || '')}</div>
+        <div class="le">${esc(l2 || 'Biblioteca · @@ESCUELA@@')}</div>`;
+      labels.appendChild(div);
+      new QRCode(div.querySelector('.qr'), { text: codigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+    }
+
+    $('reprintBtn').addEventListener('click', async () => {
       const ids = new Set([...document.querySelectorAll('.chk:checked')].map(c => +c.value));
-      const sel = techCache.filter(m => ids.has(m.id));
-      if (!sel.length) return;
+      if (!ids.size) return;
       const box = $('print');
       box.innerHTML = '<div class="labels" id="labels"></div>';
       const labels = $('labels');
-      sel.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'label';
-        div.innerHTML = `<div class="qr"></div>
-          <div class="lc">${esc(m.codigo)}</div>
-          <div class="lt">${esc(m.tipo_label || m.tipo)}${m.etiqueta ? ' · ' + esc(m.etiqueta) : ''}</div>
-          <div class="le">Biblioteca · @@ESCUELA@@</div>`;
-        labels.appendChild(div);
-        new QRCode(div.querySelector('.qr'), { text: m.codigo, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
-      });
-      window.print();
+      if (clase === 'tech') {
+        techCache.filter(m => ids.has(m.id)).forEach(m =>
+          addLabel(labels, m.codigo, (m.tipo_label || m.tipo) + (m.etiqueta ? ' · ' + m.etiqueta : '')));
+        window.print();
+      } else {
+        // libros con QR: por cada título traigo TODAS sus copias e imprimo una etiqueta por copia
+        const b = $('reprintBtn'); b.disabled = true; b.textContent = 'Generando…';
+        try {
+          let total = 0;
+          for (const tid of ids) {
+            const r = await fetch('/api/materiales/titulo/' + tid + '/copias');
+            if (r.status === 401) { location.href = '/login.html'; return; }
+            const d = await r.json();
+            (d.copias || []).filter(c => c.codigo).forEach(c => {
+              addLabel(labels, c.codigo, `${d.titulo} (copia ${c.numero_copia})`); total++;
+            });
+          }
+          if (!total) { alert('Los libros seleccionados no tienen etiquetas QR.'); return; }
+          window.print();
+        } catch { alert('Error de red. Reintentá.'); }
+        finally { b.disabled = false; window._upd(); }
+      }
     });
 
     // reimprimir TODAS las etiquetas QR de un libro viejo sin ISBN (trae sus copias)

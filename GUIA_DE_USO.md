@@ -95,12 +95,15 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 4. A partir de ahí se presta/devuelve escaneando ese QR, como cualquier libro.
 
 ### Tecnología y mapas — `Tecnología`
-- Netbooks, adaptadores, mapas, etc.: se les genera un **código interno** (`NB-001`, `MP-001`…) y
-  una **etiqueta con QR** imprimible. El QR se escanea igual en el mostrador.
+- Netbooks, cargadores de netbook, adaptadores, ratones, Raspberry, mapas, etc.: se les genera un
+  **código interno** (`NB-001`, `CN-001`, `MP-001`…) y una **etiqueta con QR** imprimible. El QR se
+  escanea igual en el mostrador.
 
-### Reimprimir etiquetas QR
-- **Catálogo** → pestaña Libros: el botón 🖨️ junto a un libro sin ISBN reimprime **todas** sus copias.
-- **Catálogo** → pestaña Tecnología: seleccionás ítems y reimprimís.
+### Reimprimir etiquetas QR (varias a la vez, para ahorrar hojas)
+- **Catálogo** → pestaña **Libros**: los libros con QR (sin ISBN) tienen casilla; marcás varios (o
+  "Seleccionar todo") → **"🖨️ Reimprimir QR"** imprime todas las etiquetas de todas sus copias juntas.
+  También hay un botón 🖨️ por libro para reimprimir uno solo.
+- **Catálogo** → pestaña **Tecnología**: seleccionás ítems y reimprimís en una sola pasada.
 - **Ficha**: botón "🖨️ Imprimir QR" para esa copia puntual.
 
 ---
