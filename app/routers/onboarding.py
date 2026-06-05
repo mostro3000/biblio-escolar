@@ -32,8 +32,8 @@ _onb_rl = Depends(rate_limit("onboarding", settings.onboarding_rate_max, setting
 
 # Umbrales de distancia euclidiana entre descriptores de face-api.js.
 # (misma persona suele dar < 0.5; distintas, > 0.6). Ajustables con datos reales.
-UMBRAL_OK = 0.575   # <= -> aprobación automática (matches reales DNI-vs-selfie dieron 0.48 y 0.57)
-UMBRAL_GRIS = 0.6   # <= -> zona gris (revisión manual); > -> rechazo
+UMBRAL_OK = 0.61    # <= -> aprobación automática (matches reales DNI-vs-selfie dieron 0.48 y 0.57)
+UMBRAL_GRIS = 0.64  # <= -> zona gris (revisión manual); > -> rechazo
 
 # uvicorn.error ya está conectado a la salida (journald); un logger propio no emitiría INFO.
 log = logging.getLogger("uvicorn.error")

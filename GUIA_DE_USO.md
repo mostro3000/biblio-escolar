@@ -116,7 +116,11 @@ Todo se accede desde el navegador del celular o la compu, en la dirección de tu
 
 ## Panel de administración — `Admin` (solo admin)
 
-- **Zona gris**: registros que quedaron "en revisión" → **Aprobar / Rechazar**.
+- **Zona gris**: registros que quedaron "en revisión" (la selfie no coincidió lo justo) →
+  **Aprobar / Rechazar**. Para ver **quién intentó registrarse y no pudo** (rechazos, zona gris,
+  DNI ilegible) está el reporte `intentos_onboarding.py` (ver más abajo). La sensibilidad del match
+  se ajusta en `app/routers/onboarding.py` (`UMBRAL_OK` aprueba solo; `UMBRAL_GRIS` manda a revisión;
+  más arriba = más permisivo) y luego `sudo systemctl restart biblio`.
 - **Personas**: listar/buscar, **crear** (DNI + rol, y opcionalmente apellido/nombre — útil para staff),
   **editar nombre/apellido** de alguien ya cargado (botón ✏️ Nombre), **suspender/reactivar** (suspender
   corta la sesión al instante), **cambiar rol** (p.ej. hacer encargada a la bibliotecaria) y
@@ -161,6 +165,11 @@ sudo systemctl restart biblio      # tras editar /opt/biblio/.env
 sudo systemctl start biblio-avisos.service && journalctl -u biblio-avisos -n 20
 
 # Backups: corren solos (diario). Quedan en /opt/biblio/backups/
+
+# ¿Quién intentó registrarse (DNI + cara) y no pudo? — rechazos, zona gris, DNI ilegible.
+# Solo lectura; cruza los logs del servicio con la base. Correr como root.
+sudo /opt/biblio/venv/bin/python /opt/biblio/scripts/intentos_onboarding.py
+#   --dias 30   acota la ventana   ·   --detalle   lista cada intento
 ```
 
 **Claves opcionales** en `/opt/biblio/.env` (después `sudo systemctl restart biblio`):
